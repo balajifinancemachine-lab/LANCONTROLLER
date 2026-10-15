@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local setup logs & secrets
+*.log
+meshcentral-data/
+*.key
+*.crt
+
+# Bundled heavy installer binaries (GitHub 100MB / recommended limit)
+bin/tailscale-setup.msi

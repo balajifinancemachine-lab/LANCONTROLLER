@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Ylianst/MeshCentral/master/meshcentral-config-schema.json",
+  "settings": {
+    "LANonly": true,
+    "WANonly": false,
+    "port": 443,
+    "sessionKey": "9RaIXY2cGaju7HuHdAT4fKX5ksjCFS85pyfJvlGIF1b3_M_0bQifTx2GDQNWJDlA",
+    "ExactPorts": true,
+    "WebRTC": true,
+    "SelfUpdate": true
+  },
+  "domains": {
+    "": {
+      "title": "JMD IT Remote Management",
+      "title2": "Local Computer Administration",
+      "newAccounts": true,
+      "minify": true,
+      "userNameIsEmail": false
+    }
+  }
+}

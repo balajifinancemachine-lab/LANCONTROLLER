@@ -115,25 +115,75 @@ RUN_VALUE_NAME = "LANControlFleetManager"
 
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-# Styling Colors & Modern UI Palette
-COLOR_BG_MAIN = "#0b0f19"         # Deep executive dark slate
-COLOR_BG_NAV = "#111827"          # Sidebar & header obsidian
-COLOR_BG_CARD = "#172033"         # Elevated glassmorphism card
-COLOR_BG_CARD_BORDER = "#25334d"  # Subtle glowing border
-COLOR_TEXT_PRIMARY = "#f8fafc"    # Crisp pure white
-COLOR_TEXT_SECONDARY = "#94a3b8"  # Slate subdued muted text
-COLOR_SUCCESS = "#10b981"         # Emerald radiant green
-COLOR_DANGER = "#ef4444"          # Ruby sharp red
-COLOR_WARNING = "#f59e0b"         # Amber warm warning
-COLOR_ACCENT = "#3b82f6"          # Electric cobalt accent
-COLOR_ACCENT_HOVER = "#2563eb"    # Deeper cobalt hover
-COLOR_ACCENT_GRAD = "#6366f1"     # Indigo glow accent
+# Apple iOS Human Interface Design Themes (Dark & Light)
+THEMES = {
+    "dark": {
+        "bg_main": "#121214",           # System Background (deep neutral dark)
+        "bg_nav": "#1c1c1e",            # Secondary Grouped Background (Apple Card/Nav)
+        "bg_card": "#1c1c1e",           # Card Surface
+        "bg_card_border": "#2c2c2e",    # Subtle Apple Separator
+        "bg_input": "#2c2c2e",          # Elevated Input field background
+        "bg_console": "#161618",        # Sleek low-contrast terminal surface
+        "text_primary": "#ffffff",      # iOS Label (Primary)
+        "text_secondary": "#8e8e93",    # iOS Secondary Label (System Gray)
+        "accent": "#0a84ff",            # iOS System Blue (Dark)
+        "accent_hover": "#0071e3",      # iOS Blue Press
+        "accent_dim": "#1e293b",        # Soft blue/slate tint for tabs
+        "success": "#30d158",           # iOS System Green
+        "danger": "#ff453a",            # iOS System Red
+        "warning": "#ff9f0a",           # iOS System Orange
+        "btn_bg": "#2c2c2e",            # Secondary button fill
+        "btn_hover": "#3a3a3c",         # Secondary button hover
+        "btn_fg": "#ffffff",            # Secondary button text
+        "tray_bg": "#1c1c1e",
+        "tray_border": "#0a84ff",
+        "name": "Dark Mode",
+    },
+    "light": {
+        "bg_main": "#f2f2f7",           # iOS System Grouped Background
+        "bg_nav": "#ffffff",            # Pure white navigation & cards
+        "bg_card": "#ffffff",           # Elevated pure white card
+        "bg_card_border": "#e5e5ea",    # iOS Light Separator (Opaque)
+        "bg_input": "#f2f2f7",          # Inset input background
+        "bg_console": "#1e1e24",        # Smooth contrast dark console
+        "text_primary": "#000000",      # iOS Label (Black)
+        "text_secondary": "#6c6c70",    # iOS Secondary Label (Gray)
+        "accent": "#007aff",            # iOS System Blue (Light)
+        "accent_hover": "#0056b3",      # iOS Blue Press
+        "accent_dim": "#e3f2fd",        # Soft blue tint
+        "success": "#34c759",           # iOS System Green
+        "danger": "#ff3b30",            # iOS System Red
+        "warning": "#ff9500",           # iOS System Orange
+        "btn_bg": "#e5e5ea",            # Secondary button fill
+        "btn_hover": "#d1d1d6",         # Secondary button hover
+        "btn_fg": "#000000",            # Secondary button text
+        "tray_bg": "#2c2c2e",
+        "tray_border": "#007aff",
+        "name": "Light Mode",
+    }
+}
 
-COLOR_TRAY_BG = "#0f172a"
-COLOR_TRAY_BORDER = "#38bdf8"
-COLOR_TRAY_ONLINE = "#10b981"
-COLOR_TRAY_OFFLINE = "#ef4444"
-COLOR_TRAY_PENDING = "#f59e0b"
+ACTIVE_THEME = "dark"
+THEME = THEMES[ACTIVE_THEME]
+
+COLOR_BG_MAIN = THEME["bg_main"]
+COLOR_BG_NAV = THEME["bg_nav"]
+COLOR_BG_CARD = THEME["bg_card"]
+COLOR_BG_CARD_BORDER = THEME["bg_card_border"]
+COLOR_TEXT_PRIMARY = THEME["text_primary"]
+COLOR_TEXT_SECONDARY = THEME["text_secondary"]
+COLOR_SUCCESS = THEME["success"]
+COLOR_DANGER = THEME["danger"]
+COLOR_WARNING = THEME["warning"]
+COLOR_ACCENT = THEME["accent"]
+COLOR_ACCENT_HOVER = THEME["accent_hover"]
+COLOR_ACCENT_GRAD = THEME["accent"]
+
+COLOR_TRAY_BG = THEME["tray_bg"]
+COLOR_TRAY_BORDER = THEME["tray_border"]
+COLOR_TRAY_ONLINE = THEME["success"]
+COLOR_TRAY_OFFLINE = THEME["danger"]
+COLOR_TRAY_PENDING = THEME["warning"]
 
 
 # ---------------------------------------------------------------------------
@@ -1522,6 +1572,9 @@ class LANControlGUI(tk.Tk):
             self.allow_new_accounts.set(bool(saved.get("allow_new_accounts", True)))
             self.auto_open_web_ui.set(bool(saved.get("auto_open_web_ui_on_login", True)))
             self.minimize_to_tray_on_close.set(bool(saved.get("minimize_to_tray_on_close", True)))
+            self.current_theme = saved.get("app_theme", "dark")
+            if self.current_theme not in THEMES:
+                self.current_theme = "dark"
         except Exception as exc:
             app_log(f"Settings error: {exc!r}")
 
@@ -1567,6 +1620,7 @@ class LANControlGUI(tk.Tk):
             "allow_new_accounts": bool(self.allow_new_accounts.get()),
             "auto_open_web_ui_on_login": bool(self.auto_open_web_ui.get()),
             "minimize_to_tray_on_close": bool(self.minimize_to_tray_on_close.get()),
+            "app_theme": getattr(self, "current_theme", "dark"),
         })
 
     def _build_style(self):
@@ -1576,50 +1630,111 @@ class LANControlGUI(tk.Tk):
         except tk.TclError:
             pass
 
-        self.configure(bg=COLOR_BG_MAIN)
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
 
-        # Base Frame & Backgrounds
-        style.configure("TFrame", background=COLOR_BG_MAIN)
-        style.configure("Header.TFrame", background=COLOR_BG_NAV)
-        style.configure("Footer.TFrame", background=COLOR_BG_NAV)
-        style.configure("Card.TFrame", background=COLOR_BG_CARD)
+        self.configure(bg=t["bg_main"])
 
-        # Modern Typography & Labels
-        style.configure("Title.TLabel", font=("Segoe UI", 16, "bold"), foreground="#38bdf8", background=COLOR_BG_NAV)
-        style.configure("Subtitle.TLabel", font=("Segoe UI", 8), foreground=COLOR_TEXT_SECONDARY, background=COLOR_BG_NAV)
-        style.configure("Section.TLabelframe", background=COLOR_BG_CARD, bordercolor=COLOR_BG_CARD_BORDER)
-        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 9, "bold"), foreground="#38bdf8", background=COLOR_BG_CARD)
-        style.configure("TLabel", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9))
-        style.configure("Status.TLabel", font=("Segoe UI", 9, "bold"), background=COLOR_BG_MAIN, foreground="#38bdf8")
+        # Base Frames & Backgrounds
+        style.configure("TFrame", background=t["bg_main"])
+        style.configure("Header.TFrame", background=t["bg_nav"])
+        style.configure("Footer.TFrame", background=t["bg_nav"])
+        style.configure("Card.TFrame", background=t["bg_card"])
 
-        # Responsive Compact Buttons (No text cut-off, clean modern corners)
-        style.configure("TButton", font=("Segoe UI", 8, "bold"), background="#1e293b", foreground="#f8fafc", padding=(6, 4), borderwidth=1, relief="flat")
-        style.map("TButton", background=[("active", "#334155"), ("pressed", "#0f172a")])
+        # Apple Typography & Labels
+        style.configure("Title.TLabel", font=("Segoe UI", 16, "bold"), foreground=t["text_primary"], background=t["bg_nav"])
+        style.configure("Subtitle.TLabel", font=("Segoe UI", 9), foreground=t["text_secondary"], background=t["bg_nav"])
+        style.configure("Section.TLabelframe", background=t["bg_card"], bordercolor=t["bg_card_border"], darkcolor=t["bg_card_border"], lightcolor=t["bg_card_border"])
+        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 9, "bold"), foreground=t["accent"], background=t["bg_card"])
+        style.configure("TLabel", background=t["bg_card"], foreground=t["text_primary"], font=("Segoe UI", 9))
+        style.configure("Status.TLabel", font=("Segoe UI", 9, "bold"), background=t["bg_main"], foreground=t["accent"])
+        style.configure("Muted.TLabel", font=("Segoe UI", 8), foreground=t["text_secondary"], background=t["bg_card"])
 
-        style.configure("Primary.TButton", font=("Segoe UI", 9, "bold"), background="#2563eb", foreground="#ffffff", padding=(8, 5), borderwidth=0)
-        style.map("Primary.TButton", background=[("active", "#1d4ed8"), ("pressed", "#1e40af")])
+        # Standard Secondary Buttons (Clean Apple Rounded Border)
+        style.configure("TButton", font=("Segoe UI", 8, "bold"), background=t["btn_bg"], foreground=t["btn_fg"], padding=(8, 4), borderwidth=1, bordercolor=t["bg_card_border"], relief="flat")
+        style.map("TButton", background=[("active", t["btn_hover"]), ("pressed", t["bg_card_border"])])
 
-        style.configure("Action.TButton", font=("Segoe UI", 8, "bold"), background="#0d9488", foreground="#ffffff", padding=(6, 4), borderwidth=0)
-        style.map("Action.TButton", background=[("active", "#0f766e"), ("pressed", "#115e59")])
+        # Primary iOS Blue Accent Button
+        style.configure("Primary.TButton", font=("Segoe UI", 9, "bold"), background=t["accent"], foreground="#ffffff", padding=(10, 5), borderwidth=0, relief="flat")
+        style.map("Primary.TButton", background=[("active", t["accent_hover"]), ("pressed", t["accent_hover"])])
 
-        style.configure("Danger.TButton", font=("Segoe UI", 8, "bold"), background="#b91c1c", foreground="#ffffff", padding=(6, 4), borderwidth=0)
-        style.map("Danger.TButton", background=[("active", "#991b1b"), ("pressed", "#7f1d1d")])
+        # Action Button (iOS System Green / Secondary Prominent)
+        style.configure("Action.TButton", font=("Segoe UI", 8, "bold"), background=t["success"], foreground="#ffffff", padding=(8, 4), borderwidth=0, relief="flat")
+        style.map("Action.TButton", background=[("active", "#28a745"), ("pressed", "#1e7e34")])
 
-        # Modern Compact Responsive Notebook Tabs
-        style.configure("TNotebook", background=COLOR_BG_MAIN, borderwidth=0)
-        style.configure("TNotebook.Tab", background="#161f30", foreground="#94a3b8", font=("Segoe UI", 9, "bold"), padding=(10, 6), borderwidth=0)
+        # Danger Button (iOS System Red)
+        style.configure("Danger.TButton", font=("Segoe UI", 8, "bold"), background=t["danger"], foreground="#ffffff", padding=(8, 4), borderwidth=0, relief="flat")
+        style.map("Danger.TButton", background=[("active", "#d93829"), ("pressed", "#b82b1d")])
+
+        # Sleek Apple Notebook Tabs
+        style.configure("TNotebook", background=t["bg_main"], borderwidth=0)
+        style.configure("TNotebook.Tab", background=t["bg_card"], foreground=t["text_secondary"], font=("Segoe UI", 9, "bold"), padding=(12, 6), borderwidth=0)
         style.map("TNotebook.Tab",
-                  background=[("selected", "#2563eb"), ("active", "#1e293b")],
-                  foreground=[("selected", "#ffffff"), ("active", "#38bdf8")])
+                  background=[("selected", t["accent"]), ("active", t["btn_hover"])],
+                  foreground=[("selected", "#ffffff"), ("active", t["text_primary"])])
 
-        # Modern Inputs & Checkbuttons
-        style.configure("TEntry", fieldbackground="#0b0f19", foreground="#f8fafc", insertcolor="#38bdf8", padding=3)
-        style.configure("TSpinbox", fieldbackground="#0b0f19", foreground="#f8fafc", insertcolor="#38bdf8", padding=2)
-        style.configure("TCombobox", fieldbackground="#0b0f19", foreground="#f8fafc", padding=2)
-        style.configure("TCheckbutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8))
-        style.map("TCheckbutton", background=[("active", COLOR_BG_CARD)])
-        style.configure("TRadiobutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8))
-        style.map("TRadiobutton", background=[("active", COLOR_BG_CARD)])
+        # Inputs, Combobox, Checkbuttons
+        style.configure("TEntry", fieldbackground=t["bg_input"], foreground=t["text_primary"], insertcolor=t["accent"], bordercolor=t["bg_card_border"], padding=4)
+        style.configure("TSpinbox", fieldbackground=t["bg_input"], foreground=t["text_primary"], insertcolor=t["accent"], bordercolor=t["bg_card_border"], padding=3)
+        style.configure("TCombobox", fieldbackground=t["bg_input"], foreground=t["text_primary"], padding=3)
+        style.configure("TCheckbutton", background=t["bg_card"], foreground=t["text_primary"], font=("Segoe UI", 8))
+        style.map("TCheckbutton", background=[("active", t["bg_card"])])
+        style.configure("TRadiobutton", background=t["bg_card"], foreground=t["text_primary"], font=("Segoe UI", 8))
+        style.map("TRadiobutton", background=[("active", t["bg_card"])])
+
+        # Treeview (Fleet Scanner)
+        style.configure("Treeview", background=t["bg_card"], foreground=t["text_primary"], fieldbackground=t["bg_card"], font=("Segoe UI", 9), rowheight=24)
+        style.configure("Treeview.Heading", background=t["bg_input"], foreground=t["text_primary"], font=("Segoe UI", 9, "bold"))
+        style.map("Treeview", background=[("selected", t["accent"])], foreground=[("selected", "#ffffff")])
+
+    def set_theme(self, theme_name: str):
+        if theme_name not in THEMES:
+            return
+        self.current_theme = theme_name
+        self._save_state()
+        self._build_style()
+        self._apply_theme_to_text_widgets()
+        if hasattr(self, "theme_btn"):
+            next_label = "☀️ Light Theme" if self.current_theme == "dark" else "🌙 Dark Theme"
+            self.theme_btn.configure(text=next_label)
+
+    def toggle_theme(self):
+        new_theme = "light" if getattr(self, "current_theme", "dark") == "dark" else "dark"
+        self.set_theme(new_theme)
+
+    def _apply_theme_to_text_widgets(self):
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
+        # Update text console and editor widgets across all tabs
+        widgets_to_update = [
+            getattr(self, "bottom_console_widget", None),
+            getattr(self, "address_box", None),
+            getattr(self, "config_text_widget", None),
+            getattr(self, "cmd_box", None),
+            getattr(self, "diag_widget", None),
+            getattr(self, "log_widget", None),
+        ]
+        for w in widgets_to_update:
+            if w and isinstance(w, tk.Text):
+                try:
+                    w.configure(
+                        bg=t["bg_console"],
+                        fg=t["text_primary"],
+                        insertbackground=t["accent"],
+                        selectbackground=t["accent"],
+                        selectforeground="#ffffff"
+                    )
+                except Exception:
+                    pass
+
+        # Update QR Canvas background and borders
+        if hasattr(self, "qr_canvas") and isinstance(self.qr_canvas, tk.Canvas):
+            try:
+                self.qr_canvas.configure(
+                    bg=t["bg_console"],
+                    highlightbackground=t["bg_card_border"]
+                )
+            except Exception:
+                pass
+
 
     def _build_ui(self):
         header = ttk.Frame(self, padding=(16, 12, 16, 8), style="Header.TFrame")
@@ -1636,6 +1751,12 @@ class LANControlGUI(tk.Tk):
 
         top_actions = ttk.Frame(header, style="Header.TFrame")
         top_actions.pack(side="right")
+        self.theme_btn = ttk.Button(
+            top_actions,
+            text="☀️ Light Theme" if getattr(self, "current_theme", "dark") == "dark" else "🌙 Dark Theme",
+            command=self.toggle_theme,
+        )
+        self.theme_btn.pack(side="left", padx=4)
         ttk.Button(top_actions, text="🌐 OPEN WEB UI", style="Primary.TButton", command=self.open_web_ui).pack(side="left", padx=6)
         ttk.Button(top_actions, text="🗕 Minimize to Tray", command=self.hide_to_tray).pack(side="left", padx=6)
 
@@ -1676,8 +1797,7 @@ class LANControlGUI(tk.Tk):
         ttk.Label(
             c_top,
             text="● Live Runtime Engine Monitor — Active socket handshakes, peer connections, and fleet events:",
-            font=("Segoe UI", 9, "bold"),
-            foreground="#38bdf8",
+            style="Status.TLabel",
         ).pack(side="left")
 
         ttk.Button(
@@ -1689,14 +1809,17 @@ class LANControlGUI(tk.Tk):
         c_inner = ttk.Frame(console_box, padding=(6, 2, 6, 6), style="Card.TFrame")
         c_inner.pack(fill="x")
 
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
         self.bottom_console_widget = tk.Text(
             c_inner,
             height=4,
             wrap="word",
             font=("Consolas", 9),
-            bg="#050811",
-            fg="#38bdf8",
-            insertbackground="#38bdf8",
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            insertbackground=t["accent"],
+            selectbackground=t["accent"],
+            selectforeground="#ffffff",
             padx=8,
             pady=4,
             relief="flat",
@@ -1743,6 +1866,8 @@ class LANControlGUI(tk.Tk):
         self._build_server_tab()
         self._build_diagnostics_tab()
 
+        self._apply_theme_to_text_widgets()
+
         # Listen to tab switch to auto-refresh tab data
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
     def _on_tab_changed(self, event):
@@ -1785,7 +1910,7 @@ class LANControlGUI(tk.Tk):
     def _status_card(self, parent, title, variable, row, column):
         frame = ttk.LabelFrame(parent, text=f"  {title}  ", style="Section.TLabelframe")
         frame.grid(row=row, column=column, sticky="nsew", padx=4, pady=3)
-        lbl = ttk.Label(frame, textvariable=variable, font=("Segoe UI", 10, "bold"), foreground="#38bdf8")
+        lbl = ttk.Label(frame, textvariable=variable, font=("Segoe UI", 10, "bold"), style="Status.TLabel")
         lbl.pack(anchor="w", padx=8, pady=5)
         return frame
 
@@ -1820,7 +1945,19 @@ class LANControlGUI(tk.Tk):
 
         info = ttk.LabelFrame(parent, text="Active LANCONTROL Access URLs", style="Section.TLabelframe")
         info.pack(fill="x", pady=(4, 2))
-        self.address_box = tk.Text(info, height=3, font=("Consolas", 9), wrap="word", bg="#0f172a", fg="#38bdf8", insertbackground="#38bdf8", relief="flat")
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
+        self.address_box = tk.Text(
+            info,
+            height=3,
+            font=("Consolas", 9),
+            wrap="word",
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            insertbackground=t["accent"],
+            selectbackground=t["accent"],
+            selectforeground="#ffffff",
+            relief="flat",
+        )
         self.address_box.pack(fill="x", padx=8, pady=(4, 4))
         self.address_box.configure(state="disabled")
 
@@ -1928,13 +2065,16 @@ class LANControlGUI(tk.Tk):
         ttk.Button(r_btns, text="Notepad", command=self.open_config_in_notepad).pack(side="left", padx=2)
         ttk.Button(r_btns, text="Folder", command=self.open_config_folder).pack(side="left", padx=2)
 
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
         self.config_text_widget = tk.Text(
             right_pane,
             wrap="none",
             font=("Consolas", 9),
-            bg="#050811",
-            fg="#38bdf8",
-            insertbackground="#38bdf8",
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            insertbackground=t["accent"],
+            selectbackground=t["accent"],
+            selectforeground="#ffffff",
             padx=8,
             pady=6,
             relief="flat",
@@ -2066,7 +2206,19 @@ class LANControlGUI(tk.Tk):
             "• ‘Disable Serve’ removes this machine's Tailscale Serve configuration; it does not uninstall Tailscale or stop MeshCentral.\n"
             "• Use a strong LANCONTROL password and limit tailnet access to trusted devices/users."
         )
-        text_box = tk.Text(guide, height=12, wrap="word", font=("Segoe UI", 10), bg="#0f172a", fg="#f8fafc", insertbackground="#f8fafc", relief="flat")
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
+        text_box = tk.Text(
+            guide,
+            height=12,
+            wrap="word",
+            font=("Segoe UI", 9),
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            insertbackground=t["accent"],
+            selectbackground=t["accent"],
+            selectforeground="#ffffff",
+            relief="flat",
+        )
         text_box.pack(fill="both", expand=True, padx=8, pady=8)
         text_box.insert("1.0", guide_text)
         text_box.configure(state="disabled")
@@ -2327,8 +2479,16 @@ class LANControlGUI(tk.Tk):
             command=self.generate_service_agent_exe,
         ).pack(fill="x", pady=(0, 8))
 
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
         ttk.Label(win_inner, text="Cross-Platform Quick Commands:", font=("Segoe UI", 8, "bold")).pack(anchor="w", pady=(4, 1))
-        self.cmd_box = tk.Text(win_inner, height=2, font=("Consolas", 8), bg="#050811", fg="#38bdf8", relief="flat")
+        self.cmd_box = tk.Text(
+            win_inner,
+            height=2,
+            font=("Consolas", 8),
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            relief="flat",
+        )
         self.cmd_box.pack(fill="x", pady=(0, 2))
         self.cmd_box.insert("1.0", "Linux: wget -q -O - https://127.0.0.1:443/meshagents?script=1 | sudo sh\nmacOS: curl -k https://127.0.0.1:443/meshagents?id=10005 -o agent && chmod +x agent")
         self.cmd_box.configure(state="disabled")
@@ -2357,7 +2517,14 @@ class LANControlGUI(tk.Tk):
             command=self.display_android_qr_code,
         ).pack(side="left")
 
-        self.qr_canvas = tk.Canvas(droid_inner, width=150, height=150, bg="#050811", highlightthickness=1, highlightbackground="#25334d")
+        self.qr_canvas = tk.Canvas(
+            droid_inner,
+            width=150,
+            height=150,
+            bg=t["bg_console"],
+            highlightthickness=1,
+            highlightbackground=t["bg_card_border"],
+        )
         self.qr_canvas.pack(pady=2)
 
         self.android_url_text = tk.StringVar(value="mc://... (Click 'Generate Pairing QR Code')")
@@ -2403,13 +2570,16 @@ class LANControlGUI(tk.Tk):
         ttk.Button(l_bar, text="⚡ RUN DEEP AUDIT & REPAIR", style="Primary.TButton", command=self.diagnose_and_repair).pack(side="left")
         ttk.Button(l_bar, text="Clear", command=lambda: self.diag_widget.delete("1.0", "end")).pack(side="right")
 
+        t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
         self.diag_widget = tk.Text(
             left_box,
             wrap="word",
             font=("Consolas", 9),
-            bg="#050811",
-            fg="#38bdf8",
-            insertbackground="#38bdf8",
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            insertbackground=t["accent"],
+            selectbackground=t["accent"],
+            selectforeground="#ffffff",
             padx=8,
             pady=6,
             relief="flat",
@@ -2443,9 +2613,11 @@ class LANControlGUI(tk.Tk):
             right_box,
             wrap="word",
             font=("Consolas", 9),
-            bg="#050811",
-            fg="#f8fafc",
-            insertbackground="#f8fafc",
+            bg=t["bg_console"],
+            fg=t["text_primary"],
+            insertbackground=t["accent"],
+            selectbackground=t["accent"],
+            selectforeground="#ffffff",
             padx=10,
             pady=8,
             relief="flat",
@@ -3226,7 +3398,7 @@ class LANControlGUI(tk.Tk):
             qr = qrcode.QRCode(box_size=3, border=2)
             qr.add_data(pairing_url)
             qr.make(fit=True)
-            pil_img = qr.make_image(fill_color="#0f172a", back_color="#ffffff").convert("RGBA")
+            pil_img = qr.make_image(fill_color="#000000", back_color="#ffffff").convert("RGBA")
 
             from PIL import ImageTk
             tk_img = ImageTk.PhotoImage(pil_img)

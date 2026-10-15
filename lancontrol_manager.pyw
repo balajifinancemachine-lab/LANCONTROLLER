@@ -1414,8 +1414,8 @@ class LANControlGUI(tk.Tk):
         self.tray = tray_instance
 
         self.title(APP_TITLE)
-        self.geometry("1280x860")
-        self.minsize(1040, 740)
+        self.geometry("1360x900")
+        self.minsize(1120, 780)
 
         # Thread-safe UI queue for Python 3.14
         self._ui_queue: queue.Queue = queue.Queue()
@@ -1584,7 +1584,7 @@ class LANControlGUI(tk.Tk):
 
         # Modern Notebook Tabs
         style.configure("TNotebook", background=COLOR_BG_MAIN, borderwidth=0)
-        style.configure("TNotebook.Tab", background="#1e293b", foreground="#cbd5e1", font=("Segoe UI", 10, "bold"), padding=(14, 8), borderwidth=0)
+        style.configure("TNotebook.Tab", background="#1e293b", foreground="#cbd5e1", font=("Segoe UI", 9, "bold"), padding=(10, 6), borderwidth=0)
         style.map("TNotebook.Tab", background=[("selected", "#2563eb"), ("active", "#334155")], foreground=[("selected", "#ffffff"), ("active", "#f8fafc")])
 
         # Checkbuttons & Radios
@@ -1629,15 +1629,15 @@ class LANControlGUI(tk.Tk):
         self.logs_tab = ttk.Frame(self.notebook, padding=12)
         self.diagnostics_tab = ttk.Frame(self.notebook, padding=12)
 
-        self.notebook.add(self.dashboard_tab, text=" Dashboard ")
-        self.notebook.add(self.server_tab, text=" Server & Startup ")
-        self.notebook.add(self.config_tab, text=" ⚙️ Config File (config.json) ")
-        self.notebook.add(self.network_tab, text=" Local Fleet Discovery ")
-        self.notebook.add(self.tailscale_tab, text=" Secure Remote Access (Tailscale) ")
-        self.notebook.add(self.deploy_tab, text=" 🚀 Endpoint Client & Agent Generator ")
-        self.notebook.add(self.remote_guide_tab, text=" 📖 Remote Anywhere & Setup Guide ")
+        self.notebook.add(self.dashboard_tab, text=" ⚡ Dashboard ")
+        self.notebook.add(self.server_tab, text=" 🖥️ Server & Ports ")
+        self.notebook.add(self.config_tab, text=" ⚙️ Config Editor ")
+        self.notebook.add(self.network_tab, text=" 🔍 Fleet Discovery ")
+        self.notebook.add(self.tailscale_tab, text=" 🌐 Remote Access (Tailscale) ")
+        self.notebook.add(self.deploy_tab, text=" 🚀 Client & Agent Builder ")
+        self.notebook.add(self.remote_guide_tab, text=" 📖 Access Guide ")
         self.notebook.add(self.logs_tab, text=" 📝 Real-Time Logs ")
-        self.notebook.add(self.diagnostics_tab, text=" Diagnostics & Repair ")
+        self.notebook.add(self.diagnostics_tab, text=" 🛠️ Diagnostics ")
 
         self._build_dashboard_tab()
         self._build_server_tab()
@@ -1654,9 +1654,9 @@ class LANControlGUI(tk.Tk):
 
         # ---------------- FIXED BOTTOM LIVE CONSOLE ----------------
         console_box = ttk.LabelFrame(self, text="  ⚡ Live System Terminal & Activity Monitor  ", style="Section.TLabelframe")
-        console_box.pack(fill="x", padx=12, pady=(0, 6))
+        console_box.pack(fill="x", padx=12, pady=(0, 4))
 
-        c_top = ttk.Frame(console_box, padding=(8, 2, 8, 2), style="Card.TFrame")
+        c_top = ttk.Frame(console_box, padding=(8, 1, 8, 1), style="Card.TFrame")
         c_top.pack(fill="x")
 
         ttk.Label(
@@ -1672,12 +1672,12 @@ class LANControlGUI(tk.Tk):
             command=lambda: (self.bottom_console_widget.delete("1.0", "end") if hasattr(self, "bottom_console_widget") else None),
         ).pack(side="right")
 
-        c_inner = ttk.Frame(console_box, padding=(6, 0, 6, 6), style="Card.TFrame")
+        c_inner = ttk.Frame(console_box, padding=(6, 0, 6, 4), style="Card.TFrame")
         c_inner.pack(fill="x")
 
         self.bottom_console_widget = tk.Text(
             c_inner,
-            height=4,
+            height=3,
             wrap="word",
             font=("Consolas", 9),
             bg="#060911",
@@ -1763,9 +1763,9 @@ class LANControlGUI(tk.Tk):
 
     def _status_card(self, parent, title, variable, row, column):
         frame = ttk.LabelFrame(parent, text=f"  {title}  ", style="Section.TLabelframe")
-        frame.grid(row=row, column=column, sticky="nsew", padx=6, pady=6)
-        lbl = ttk.Label(frame, textvariable=variable, font=("Segoe UI", 11, "bold"), foreground="#38bdf8")
-        lbl.pack(anchor="w", padx=12, pady=12)
+        frame.grid(row=row, column=column, sticky="nsew", padx=4, pady=3)
+        lbl = ttk.Label(frame, textvariable=variable, font=("Segoe UI", 10, "bold"), foreground="#38bdf8")
+        lbl.pack(anchor="w", padx=8, pady=5)
         return frame
 
     def _build_dashboard_tab(self):
@@ -1786,8 +1786,8 @@ class LANControlGUI(tk.Tk):
         self._status_card(grid, "Network Interfaces", self.network_status, 1, 3)
 
         actions = ttk.LabelFrame(parent, text="Fast Actions & Service Controls", style="Section.TLabelframe")
-        actions.pack(fill="x", pady=(10, 8))
-        a = ttk.Frame(actions, padding=10)
+        actions.pack(fill="x", pady=(6, 4))
+        a = ttk.Frame(actions, padding=(8, 4, 8, 4))
         a.pack(fill="x")
 
         ttk.Button(a, text="⚡ 1-CLICK AUTOMATED SETUP (ANY PC / ANY OFFICE)", style="Primary.TButton", command=self.one_click_setup).pack(side="left", padx=(0, 8))
@@ -1798,12 +1798,12 @@ class LANControlGUI(tk.Tk):
         ttk.Button(a, text="Open Web UI", style="Action.TButton", command=self.open_web_ui).pack(side="right")
 
         info = ttk.LabelFrame(parent, text="Active LANCONTROL Access URLs", style="Section.TLabelframe")
-        info.pack(fill="x", pady=6)
-        self.address_box = tk.Text(info, height=5, font=("Consolas", 10), wrap="word", bg="#0f172a", fg="#38bdf8", insertbackground="#38bdf8", relief="flat")
-        self.address_box.pack(fill="x", padx=8, pady=8)
+        info.pack(fill="x", pady=(4, 2))
+        self.address_box = tk.Text(info, height=3, font=("Consolas", 9), wrap="word", bg="#0f172a", fg="#38bdf8", insertbackground="#38bdf8", relief="flat")
+        self.address_box.pack(fill="x", padx=8, pady=(4, 4))
         self.address_box.configure(state="disabled")
 
-        banner = ttk.Frame(parent, padding=6)
+        banner = ttk.Frame(parent, padding=(4, 2, 4, 2))
         banner.pack(fill="x")
         ttk.Label(
             banner,
@@ -2226,7 +2226,6 @@ class LANControlGUI(tk.Tk):
         header_frame = ttk.Frame(parent)
         header_frame.pack(fill="x", pady=(0, 6))
         ttk.Label(header_frame, text="LANCONTROL Endpoint Client & Agent Generator", style="Title.TLabel").pack(anchor="w")
-        self.notebook.add(self.remote_guide_tab, text=" 📖 Remote Anywhere & Setup Guide ")
         ttk.Label(
             header_frame,
             text="Generate standalone, pre-configured 1-click executables for Windows and instant QR pairing for Android devices.",

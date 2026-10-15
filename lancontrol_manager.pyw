@@ -104,17 +104,22 @@ RUN_VALUE_NAME = "LANControlFleetManager"
 
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-# Styling Colors
-COLOR_BG_CARD = "#ffffff"
-COLOR_TEXT_PRIMARY = "#0f172a"
-COLOR_TEXT_SECONDARY = "#475569"
-COLOR_SUCCESS = "#16a34a"
-COLOR_DANGER = "#dc2626"
-COLOR_WARNING = "#d97706"
-COLOR_ACCENT = "#2563eb"
+# Styling Colors & Modern UI Palette
+COLOR_BG_MAIN = "#0b0f19"         # Deep executive dark slate
+COLOR_BG_NAV = "#111827"          # Sidebar & header obsidian
+COLOR_BG_CARD = "#172033"         # Elevated glassmorphism card
+COLOR_BG_CARD_BORDER = "#25334d"  # Subtle glowing border
+COLOR_TEXT_PRIMARY = "#f8fafc"    # Crisp pure white
+COLOR_TEXT_SECONDARY = "#94a3b8"  # Slate subdued muted text
+COLOR_SUCCESS = "#10b981"         # Emerald radiant green
+COLOR_DANGER = "#ef4444"          # Ruby sharp red
+COLOR_WARNING = "#f59e0b"         # Amber warm warning
+COLOR_ACCENT = "#3b82f6"          # Electric cobalt accent
+COLOR_ACCENT_HOVER = "#2563eb"    # Deeper cobalt hover
+COLOR_ACCENT_GRAD = "#6366f1"     # Indigo glow accent
 
-COLOR_TRAY_BG = "#1e293b"
-COLOR_TRAY_BORDER = "#3b82f6"
+COLOR_TRAY_BG = "#0f172a"
+COLOR_TRAY_BORDER = "#38bdf8"
 COLOR_TRAY_ONLINE = "#10b981"
 COLOR_TRAY_OFFLINE = "#ef4444"
 COLOR_TRAY_PENDING = "#f59e0b"
@@ -1544,21 +1549,55 @@ class LANControlGUI(tk.Tk):
     def _build_style(self):
         style = ttk.Style(self)
         try:
-            style.theme_use("vista")
+            style.theme_use("clam")
         except tk.TclError:
             pass
-        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"), foreground=COLOR_TEXT_PRIMARY)
-        style.configure("Subtitle.TLabel", font=("Segoe UI", 9), foreground=COLOR_TEXT_SECONDARY)
-        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT_PRIMARY)
-        style.configure("Action.TButton", font=("Segoe UI", 9, "bold"), padding=(10, 6))
-        style.configure("Primary.TButton", font=("Segoe UI", 10, "bold"), padding=(12, 8))
-        style.configure("Status.TLabel", font=("Segoe UI", 9, "bold"))
+
+        self.configure(bg=COLOR_BG_MAIN)
+
+        # Base Frame & Backgrounds
+        style.configure("TFrame", background=COLOR_BG_MAIN)
+        style.configure("Header.TFrame", background=COLOR_BG_NAV)
+        style.configure("Footer.TFrame", background=COLOR_BG_NAV)
+        style.configure("Card.TFrame", background=COLOR_BG_CARD)
+
+        # Labels
+        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"), foreground="#38bdf8", background=COLOR_BG_NAV)
+        style.configure("Subtitle.TLabel", font=("Segoe UI", 9), foreground=COLOR_TEXT_SECONDARY, background=COLOR_BG_NAV)
+        style.configure("Section.TLabelframe", background=COLOR_BG_CARD, bordercolor=COLOR_BG_CARD_BORDER)
+        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 10, "bold"), foreground="#38bdf8", background=COLOR_BG_CARD)
+        style.configure("TLabel", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY)
+        style.configure("Status.TLabel", font=("Segoe UI", 9, "bold"), background=COLOR_BG_MAIN, foreground="#38bdf8")
+
+        # Modern Buttons
+        style.configure("TButton", font=("Segoe UI", 9, "bold"), background="#1e293b", foreground="#f8fafc", padding=(10, 6), borderwidth=1, relief="flat")
+        style.map("TButton", background=[("active", "#334155"), ("pressed", "#0f172a")])
+
+        style.configure("Primary.TButton", font=("Segoe UI", 10, "bold"), background="#2563eb", foreground="#ffffff", padding=(14, 8), borderwidth=0)
+        style.map("Primary.TButton", background=[("active", "#1d4ed8"), ("pressed", "#1e40af")])
+
+        style.configure("Action.TButton", font=("Segoe UI", 9, "bold"), background="#0d9488", foreground="#ffffff", padding=(10, 6), borderwidth=0)
+        style.map("Action.TButton", background=[("active", "#0f766e"), ("pressed", "#115e59")])
+
+        style.configure("Danger.TButton", font=("Segoe UI", 9, "bold"), background="#b91c1c", foreground="#ffffff", padding=(10, 6), borderwidth=0)
+        style.map("Danger.TButton", background=[("active", "#991b1b"), ("pressed", "#7f1d1d")])
+
+        # Modern Notebook Tabs
+        style.configure("TNotebook", background=COLOR_BG_MAIN, borderwidth=0)
+        style.configure("TNotebook.Tab", background="#1e293b", foreground="#cbd5e1", font=("Segoe UI", 10, "bold"), padding=(14, 8), borderwidth=0)
+        style.map("TNotebook.Tab", background=[("selected", "#2563eb"), ("active", "#334155")], foreground=[("selected", "#ffffff"), ("active", "#f8fafc")])
+
+        # Checkbuttons & Radios
+        style.configure("TCheckbutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9))
+        style.map("TCheckbutton", background=[("active", COLOR_BG_CARD)])
+        style.configure("TRadiobutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9))
+        style.map("TRadiobutton", background=[("active", COLOR_BG_CARD)])
 
     def _build_ui(self):
-        header = ttk.Frame(self, padding=(16, 12, 16, 8))
+        header = ttk.Frame(self, padding=(16, 12, 16, 8), style="Header.TFrame")
         header.pack(fill="x")
 
-        title_box = ttk.Frame(header)
+        title_box = ttk.Frame(header, style="Header.TFrame")
         title_box.pack(side="left", fill="x", expand=True)
         ttk.Label(title_box, text=APP_TITLE, style="Title.TLabel").pack(anchor="w")
         ttk.Label(
@@ -1567,7 +1606,7 @@ class LANControlGUI(tk.Tk):
             style="Subtitle.TLabel",
         ).pack(anchor="w", pady=(2, 0))
 
-        top_actions = ttk.Frame(header)
+        top_actions = ttk.Frame(header, style="Header.TFrame")
         top_actions.pack(side="right")
         ttk.Button(top_actions, text="🌐 OPEN WEB UI", style="Primary.TButton", command=self.open_web_ui).pack(side="left", padx=6)
         ttk.Button(top_actions, text="🗕 Minimize to Tray", command=self.hide_to_tray).pack(side="left", padx=6)
@@ -1613,7 +1652,7 @@ class LANControlGUI(tk.Tk):
         # Listen to tab switch to auto-refresh tab data
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
-        footer = ttk.Frame(self, padding=(14, 4, 14, 8))
+        footer = ttk.Frame(self, padding=(14, 6, 14, 10), style="Footer.TFrame")
         footer.pack(fill="x")
 
         elevation_text = "Windows Administrator Active" if is_admin() else "Standard User Mode"
@@ -1673,9 +1712,10 @@ class LANControlGUI(tk.Tk):
             self.deploy_box.configure(state="disabled")
 
     def _status_card(self, parent, title, variable, row, column):
-        frame = ttk.LabelFrame(parent, text=title, style="Section.TLabelframe")
-        frame.grid(row=row, column=column, sticky="nsew", padx=6, pady=5)
-        ttk.Label(frame, textvariable=variable, font=("Segoe UI", 11, "bold"), foreground=COLOR_TEXT_PRIMARY).pack(anchor="w", padx=10, pady=10)
+        frame = ttk.LabelFrame(parent, text=f"  {title}  ", style="Section.TLabelframe")
+        frame.grid(row=row, column=column, sticky="nsew", padx=6, pady=6)
+        lbl = ttk.Label(frame, textvariable=variable, font=("Segoe UI", 11, "bold"), foreground="#38bdf8")
+        lbl.pack(anchor="w", padx=12, pady=12)
         return frame
 
     def _build_dashboard_tab(self):
@@ -1709,7 +1749,7 @@ class LANControlGUI(tk.Tk):
 
         info = ttk.LabelFrame(parent, text="Active LANCONTROL Access URLs", style="Section.TLabelframe")
         info.pack(fill="x", pady=6)
-        self.address_box = tk.Text(info, height=5, font=("Consolas", 10), wrap="word", bg="#f8fafc")
+        self.address_box = tk.Text(info, height=5, font=("Consolas", 10), wrap="word", bg="#0f172a", fg="#38bdf8", insertbackground="#38bdf8", relief="flat")
         self.address_box.pack(fill="x", padx=8, pady=8)
         self.address_box.configure(state="disabled")
 
@@ -1959,7 +1999,7 @@ class LANControlGUI(tk.Tk):
             "• ‘Disable Serve’ removes this machine's Tailscale Serve configuration; it does not uninstall Tailscale or stop MeshCentral.\n"
             "• Use a strong LANCONTROL password and limit tailnet access to trusted devices/users."
         )
-        text_box = tk.Text(guide, height=12, wrap="word", font=("Segoe UI", 10), bg="#f8fafc")
+        text_box = tk.Text(guide, height=12, wrap="word", font=("Segoe UI", 10), bg="#0f172a", fg="#f8fafc", insertbackground="#f8fafc", relief="flat")
         text_box.pack(fill="both", expand=True, padx=8, pady=8)
         text_box.insert("1.0", guide_text)
         text_box.configure(state="disabled")
@@ -2253,7 +2293,7 @@ class LANControlGUI(tk.Tk):
             command=self.display_android_qr_code,
         ).pack(side="left")
 
-        self.qr_canvas = tk.Canvas(droid_inner, width=170, height=170, bg="#ffffff", highlightthickness=1, highlightbackground="#cbd5e1")
+        self.qr_canvas = tk.Canvas(droid_inner, width=170, height=170, bg="#0f172a", highlightthickness=1, highlightbackground="#25334d")
         self.qr_canvas.pack(pady=4)
 
         self.android_url_text = tk.StringVar(value="mc://... (Click 'Generate Pairing QR Code')")
@@ -2287,7 +2327,7 @@ class LANControlGUI(tk.Tk):
         box = ttk.LabelFrame(parent, text="Universal Access Manual", style="Section.TLabelframe")
         box.pack(fill="both", expand=True)
 
-        guide_widget = tk.Text(box, wrap="word", font=("Segoe UI", 10), bg="#f8fafc", padx=12, pady=12)
+        guide_widget = tk.Text(box, wrap="word", font=("Segoe UI", 10), bg="#0f172a", fg="#f8fafc", insertbackground="#f8fafc", padx=12, pady=12, relief="flat")
         guide_widget.pack(fill="both", expand=True)
         sb = ttk.Scrollbar(guide_widget, orient="vertical", command=guide_widget.yview)
         sb.pack(side="right", fill="y")

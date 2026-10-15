@@ -1974,11 +1974,19 @@ class LANControlGUI(tk.Tk):
                 headline = "Connected to Tailscale"
             else:
                 headline = "Installed, but not connected / signed in"
-            ip_text = f"Tailscale IP: {info.get('ip') or 'not available'}"
-            url = serve_url
-            if not url and configured and info.get("dns"):
-                url = "https://" + info["dns"].rstrip(".")
-            url_text = f"Remote URL: {url}" if url else ("Remote URL: Serve is configured; URL not detected" if configured else "Remote URL: not configured")
+            ip_val = info.get('ip') or 'not available'
+            dns_val = info.get('dns') or ''
+            ip_text = f"Tailscale IP: {ip_val}   |   MagicDNS: {dns_val}"
+            direct_url = f"https://{ip_val}:443/" if ip_val != 'not available' else ""
+            if configured and serve_url:
+                url = serve_url
+                url_text = f"Tailscale Remote URL: {url} (Direct: {direct_url})"
+            elif direct_url:
+                url = direct_url
+                url_text = f"Direct Tailnet URL: {direct_url}  (Ready to access from Home PC!)"
+            else:
+                url = ""
+                url_text = "Remote URL: not configured" 
             detail = info.get("detail", "")
             if detail and detail not in ("Connected", "running"):
                 headline += f" — {detail[:180]}"
@@ -2056,6 +2064,15 @@ class LANControlGUI(tk.Tk):
             self.post_ui(lambda: messagebox.showwarning(APP_TITLE, message))
         self.post_ui(self.refresh_tailscale_status)
         self.set_status("Tailscale Serve setup finished" if ok else "Tailscale Serve setup needs attention", 100)
+
+    
+    def open_direct_tailscale_url(self):
+        info = tailscale_status_info()
+        ts_ip = info.get("ip") or "100.113.51.119"
+        port = int(self.port.get() or DEFAULT_PORT)
+        url = f"https://{ts_ip}:{port}/"
+        webbrowser.open(url)
+        self.append_log(f"Opened direct Tailscale URL: {url}")
 
     def open_tailscale_url(self):
         url = getattr(self, "_tailscale_remote_url", "")

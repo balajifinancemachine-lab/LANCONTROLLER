@@ -1652,6 +1652,56 @@ class LANControlGUI(tk.Tk):
         # Listen to tab switch to auto-refresh tab data
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
+        # ---------------- FIXED BOTTOM LIVE CONSOLE ----------------
+        console_box = ttk.LabelFrame(self, text="  ⚡ Live System Terminal & Activity Monitor  ", style="Section.TLabelframe")
+        console_box.pack(fill="x", padx=12, pady=(0, 6))
+
+        c_top = ttk.Frame(console_box, padding=(8, 2, 8, 2), style="Card.TFrame")
+        c_top.pack(fill="x")
+
+        ttk.Label(
+            c_top,
+            text="Streaming active runtime logs, connection handshakes, and agent events in real-time:",
+            font=("Segoe UI", 8),
+            foreground=COLOR_TEXT_SECONDARY,
+        ).pack(side="left")
+
+        ttk.Button(
+            c_top,
+            text="Clear Console",
+            command=lambda: (self.bottom_console_widget.delete("1.0", "end") if hasattr(self, "bottom_console_widget") else None),
+        ).pack(side="right")
+
+        c_inner = ttk.Frame(console_box, padding=(6, 0, 6, 6), style="Card.TFrame")
+        c_inner.pack(fill="x")
+
+        self.bottom_console_widget = tk.Text(
+            c_inner,
+            height=4,
+            wrap="word",
+            font=("Consolas", 9),
+            bg="#060911",
+            fg="#38bdf8",
+            insertbackground="#38bdf8",
+            padx=8,
+            pady=4,
+            relief="flat",
+        )
+        self.bottom_console_widget.pack(fill="both", expand=True, side="left")
+        c_sb = ttk.Scrollbar(c_inner, orient="vertical", command=self.bottom_console_widget.yview)
+        c_sb.pack(side="right", fill="y")
+        self.bottom_console_widget.configure(yscrollcommand=c_sb.set)
+
+        # Preload initial logs into bottom console if available
+        try:
+            if LOCAL_LOG_FILE.exists():
+                lines = LOCAL_LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
+                tail = lines[-35:]
+                self.bottom_console_widget.insert("1.0", "\n".join(tail) + ("\n" if tail else ""))
+                self.bottom_console_widget.see("end")
+        except Exception:
+            pass
+
         footer = ttk.Frame(self, padding=(14, 6, 14, 10), style="Footer.TFrame")
         footer.pack(fill="x")
 
@@ -2468,6 +2518,12 @@ class LANControlGUI(tk.Tk):
                 try:
                     self.log_widget.insert("end", line)
                     self.log_widget.see("end")
+                except Exception:
+                    pass
+            if hasattr(self, "bottom_console_widget"):
+                try:
+                    self.bottom_console_widget.insert("end", line)
+                    self.bottom_console_widget.see("end")
                 except Exception:
                     pass
 

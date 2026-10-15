@@ -1490,6 +1490,9 @@ class LANControlGUI(tk.Tk):
             
         self.minsize(1050, 620)
 
+        # Apply Windows 11/10 DWM Immersive Dark/Light Mode to Window Title Bar
+        self.after(50, self._update_dwm_titlebar)
+
         # Thread-safe UI queue for Python 3.14
         self._ui_queue: queue.Queue = queue.Queue()
         self._poll_ui_queue()
@@ -1533,11 +1536,33 @@ class LANControlGUI(tk.Tk):
     def _periodic_refresh(self):
         try:
             self.refresh_all()
+            self._autonomous_watchdog_check()
         finally:
             try:
                 self.after(30000, self._periodic_refresh)
             except Exception:
                 pass
+
+    def _autonomous_watchdog_check(self):
+        """Self-healing daemon: if service is supposed to be running but died, auto-restart."""
+        def watchdog_worker():
+            try:
+                # Check if boot autostart is enabled (indicator that service should stay alive)
+                if getattr(self, "boot_autostart", None) and self.boot_autostart.get():
+                    svc_status = service_status_text().lower()
+                    if "stopped" in svc_status and is_admin():
+                        self.append_log("⚠️ Watchdog: Service unexpectedly stopped. Attempting autonomous self-healing restart...")
+                        ok, msg = control_service("start")
+                        if ok:
+                            self.append_log("✓ Watchdog: Autonomous self-healing service restart succeeded.")
+                            if self.tray:
+                                self.tray.notify("LANCONTROL Autonomous Watchdog restored server service.", "Autonomous Self-Healing Active")
+                        else:
+                            self.append_log(f"Watchdog auto-restart alert: {msg}")
+            except Exception as exc:
+                self.append_log(f"Watchdog check error: {exc!r}")
+
+        threading.Thread(target=watchdog_worker, daemon=True).start()
 
     def _poll_ui_queue(self):
         """Drains the thread-safe queue on the main Tkinter thread."""
@@ -1686,6 +1711,27 @@ class LANControlGUI(tk.Tk):
         style.configure("Treeview.Heading", background=t["bg_input"], foreground=t["text_primary"], font=("Segoe UI", 9, "bold"))
         style.map("Treeview", background=[("selected", t["accent"])], foreground=[("selected", "#ffffff")])
 
+    def _update_dwm_titlebar(self):
+        """Applies Windows 11 / Windows 10 DWM Immersive Dark Mode to the title bar."""
+        try:
+            hwnd = ctypes.windll.user32.GetParent(self.winfo_id())
+            if not hwnd:
+                hwnd = self.winfo_id()
+            # DWMWA_USE_IMMERSIVE_DARK_MODE (20 on Windows 11/10 20H1+, 19 on older 10)
+            is_dark = getattr(self, "current_theme", "dark") == "dark"
+            value = ctypes.c_int(1 if is_dark else 0)
+            for attr in (20, 19):
+                res = ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd,
+                    attr,
+                    ctypes.byref(value),
+                    ctypes.sizeof(value),
+                )
+                if res == 0:
+                    break
+        except Exception:
+            pass
+
     def set_theme(self, theme_name: str):
         if theme_name not in THEMES:
             return
@@ -1693,6 +1739,7 @@ class LANControlGUI(tk.Tk):
         self._save_state()
         self._build_style()
         self._apply_theme_to_text_widgets()
+        self._update_dwm_titlebar()
         if hasattr(self, "theme_btn"):
             next_label = "☀️ Light Theme" if self.current_theme == "dark" else "🌙 Dark Theme"
             self.theme_btn.configure(text=next_label)
@@ -1732,6 +1779,13 @@ class LANControlGUI(tk.Tk):
                     bg=t["bg_console"],
                     highlightbackground=t["bg_card_border"]
                 )
+            except Exception:
+                pass
+
+        # Update all status card pill badges
+        for fn in getattr(self, "_status_card_updaters", []):
+            try:
+                fn()
             except Exception:
                 pass
 
@@ -1910,8 +1964,51 @@ class LANControlGUI(tk.Tk):
     def _status_card(self, parent, title, variable, row, column):
         frame = ttk.LabelFrame(parent, text=f"  {title}  ", style="Section.TLabelframe")
         frame.grid(row=row, column=column, sticky="nsew", padx=4, pady=3)
-        lbl = ttk.Label(frame, textvariable=variable, font=("Segoe UI", 10, "bold"), style="Status.TLabel")
-        lbl.pack(anchor="w", padx=8, pady=5)
+
+        badge_box = tk.Frame(frame, bd=0, relief="flat")
+        badge_box.pack(anchor="w", padx=8, pady=5)
+
+        badge_lbl = tk.Label(
+            badge_box,
+            textvariable=variable,
+            font=("Segoe UI", 9, "bold"),
+            padx=10,
+            pady=3,
+            bd=0,
+            relief="flat",
+        )
+        badge_lbl.pack(anchor="w")
+
+        def update_badge_color(*args):
+            val = str(variable.get()).strip()
+            val_lower = val.lower()
+            t = THEMES.get(getattr(self, "current_theme", "dark"), THEMES["dark"])
+            is_dark = getattr(self, "current_theme", "dark") == "dark"
+
+            if any(k in val_lower for k in ["running", "active", "online", "healthy", "installed", "auto", "ok"]):
+                bg = "#132d1e" if is_dark else "#e8f8ed"
+                fg = t["success"]
+            elif any(k in val_lower for k in ["stopped", "offline", "missing", "error", "failed", "disabled"]):
+                bg = "#331616" if is_dark else "#fde8e8"
+                fg = t["danger"]
+            elif any(k in val_lower for k in ["checking", "pending", "resolving", "starting"]):
+                bg = "#332612" if is_dark else "#fef3e2"
+                fg = t["warning"]
+            else:
+                bg = t["bg_input"]
+                fg = t["text_primary"]
+
+            try:
+                badge_box.configure(bg=t["bg_card"])
+                badge_lbl.configure(bg=bg, fg=fg)
+            except Exception:
+                pass
+
+        variable.trace_add("write", update_badge_color)
+        update_badge_color()
+        if not hasattr(self, "_status_card_updaters"):
+            self._status_card_updaters = []
+        self._status_card_updaters.append(update_badge_color)
         return frame
 
     def _build_dashboard_tab(self):
@@ -2011,6 +2108,7 @@ class LANControlGUI(tk.Tk):
         cfg_actions.pack(fill="x")
         ttk.Button(cfg_actions, text="Save Config", style="Action.TButton", command=self.write_config).pack(side="left")
         ttk.Button(cfg_actions, text="Backup", command=self.backup_current_config).pack(side="left", padx=4)
+        ttk.Button(cfg_actions, text="Rollback", command=self.rollback_config_action).pack(side="left", padx=2)
         ttk.Button(cfg_actions, text="npm Update", command=self.install_or_update_mesh).pack(side="right")
 
         startup_box = ttk.LabelFrame(left_pane, text="  Windows Startup & Background Tray  ", style="Section.TLabelframe")
@@ -2370,9 +2468,26 @@ class LANControlGUI(tk.Tk):
         top = ttk.Frame(parent)
         top.pack(fill="x", pady=(0, 6))
 
-        ttk.Button(top, text="🔍 Scan Local Network", style="Action.TButton", command=self.scan_hosts).pack(side="left")
-        ttk.Button(top, text="Export Discovered PCs to CSV", command=self.export_hosts_csv).pack(side="left", padx=8)
-        ttk.Button(top, text="Refresh Interface IPs", command=self.refresh_network).pack(side="left")
+        ttk.Button(top, text="🔍 Scan Network", style="Action.TButton", command=self.scan_hosts).pack(side="left")
+
+        ttk.Label(top, text="Target Subnet / Range:", font=("Segoe UI", 8, "bold")).pack(side="left", padx=(10, 4))
+        self.scan_target_var = tk.StringVar(value="All Local Subnets")
+        detected_subnets = ["All Local Subnets"]
+        for ip in local_ipv4_addresses():
+            if ip and not ip.startswith("127."):
+                parts = ip.split(".")
+                if len(parts) == 4:
+                    detected_subnets.append(f"{parts[0]}.{parts[1]}.{parts[2]}.0/24")
+        ts_info = tailscale_status_info()
+        ts_ip = ts_info.get("ip")
+        if ts_ip:
+            detected_subnets.append(f"{ts_ip}/32 (Tailnet)")
+
+        self.scan_target_combo = ttk.Combobox(top, textvariable=self.scan_target_var, values=detected_subnets, width=28)
+        self.scan_target_combo.pack(side="left", padx=2)
+
+        ttk.Button(top, text="Export CSV", command=self.export_hosts_csv).pack(side="left", padx=6)
+        ttk.Button(top, text="Refresh IPs", command=self.refresh_network).pack(side="left")
 
         columns = ("ip", "mac", "state", "hostname", "source")
         self.host_tree = ttk.Treeview(parent, columns=columns, show="headings", selectmode="extended")
@@ -2512,9 +2627,15 @@ class LANControlGUI(tk.Tk):
 
         ttk.Button(
             droid_action_row,
-            text="📱 Generate Pairing QR Code",
+            text="📱 LAN QR Code",
             style="Primary.TButton",
             command=self.display_android_qr_code,
+        ).pack(side="left", padx=(0, 4))
+
+        ttk.Button(
+            droid_action_row,
+            text="🌐 Tailscale Mobile QR",
+            command=self.display_tailscale_mobile_qr_code,
         ).pack(side="left")
 
         self.qr_canvas = tk.Canvas(
@@ -3050,6 +3171,61 @@ class LANControlGUI(tk.Tk):
         else:
             messagebox.showinfo(APP_TITLE, "No existing configuration file to backup.")
 
+    def rollback_config_action(self):
+        root = Path(self.server_dir.get()).expanduser().resolve()
+        paths = server_paths(root)
+        backup_dir = paths["backups"]
+        if not backup_dir.exists():
+            messagebox.showinfo(APP_TITLE, "No backup directory exists yet.")
+            return
+
+        candidates = sorted(list(backup_dir.glob("config.*.json")), reverse=True)
+        if not candidates:
+            messagebox.showinfo(APP_TITLE, "No saved config backups found in:\n" + str(backup_dir))
+            return
+
+        # Modal selection dialog for available backups
+        dlg = tk.Toplevel(self)
+        dlg.title("Rollback Configuration Snapshot")
+        dlg.geometry("560x340")
+        dlg.grab_set()
+
+        ttk.Label(dlg, text="Select Configuration Snapshot To Restore", font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(12, 4))
+        ttk.Label(dlg, text="Choose a timestamped snapshot to roll back config.json. The current config will be automatically backed up first.", font=("Segoe UI", 8)).pack(anchor="w", padx=14, pady=(0, 8))
+
+        list_frame = ttk.Frame(dlg)
+        list_frame.pack(fill="both", expand=True, padx=14, pady=4)
+
+        lb = tk.Listbox(list_frame, font=("Consolas", 9), selectmode="single")
+        lb.pack(side="left", fill="both", expand=True)
+        sb = ttk.Scrollbar(list_frame, orient="vertical", command=lb.yview)
+        sb.pack(side="right", fill="y")
+        lb.configure(yscrollcommand=sb.set)
+
+        for b in candidates:
+            mtime = dt.datetime.fromtimestamp(b.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            lb.insert("end", f"{b.name}  [{mtime}] ({b.stat().st_size:,} bytes)")
+        lb.selection_set(0)
+
+        def do_restore():
+            sel = lb.curselection()
+            if not sel:
+                return
+            target_snap = candidates[sel[0]]
+            # Make safety backup of current before overwriting
+            backup_config(paths["config"], paths["backups"])
+            shutil.copy2(target_snap, paths["config"])
+            atomic_write_json(LOCAL_CONFIG_FILE, load_json(paths["config"]))
+            self.append_log(f"Config rolled back to snapshot: {target_snap.name}")
+            self.reload_config_tab()
+            dlg.destroy()
+            messagebox.showinfo(APP_TITLE, f"Configuration successfully rolled back to:\n{target_snap.name}\n\nRestart service if active.")
+
+        btn_bar = ttk.Frame(dlg, padding=(14, 8, 14, 10))
+        btn_bar.pack(fill="x")
+        ttk.Button(btn_bar, text="Cancel", command=dlg.destroy).pack(side="right")
+        ttk.Button(btn_bar, text="⚡ Restore Selected Snapshot", style="Primary.TButton", command=do_restore).pack(side="right", padx=6)
+
     def install_or_update_mesh(self):
         server_dir_val = self.server_dir.get()
         self.run_background(self._install_mesh_worker, server_dir_val)
@@ -3406,6 +3582,39 @@ class LANControlGUI(tk.Tk):
             self.qr_canvas.delete("all")
             self.qr_canvas.create_image(85, 85, image=tk_img)
             self.append_log("Rendered Android MDM Pairing QR Code in canvas.")
+        except Exception as exc:
+            self.append_log(f"Could not render QR code: {exc!r}")
+
+    def display_tailscale_mobile_qr_code(self):
+        info = tailscale_status_info()
+        ts_ip = info.get("ip") or (info.get("ips")[0] if info.get("ips") else "")
+        dns = info.get("dns") or ""
+        host = dns or ts_ip
+        if not host:
+            messagebox.showwarning(APP_TITLE, "Tailscale is not connected or no Tailscale IP was found.\nConnect Tailscale first.")
+            return
+
+        port_str = self.deploy_port_var.get().strip() or "443"
+        port = int(port_str)
+        mesh_id, mesh_name = self._get_selected_mesh_info()
+
+        pairing_url = build_android_pairing_url(host, port, mesh_id)
+        self.android_url_text.set(pairing_url)
+        self.append_log(f"Tailscale Mobile Pairing URL generated: {pairing_url}")
+
+        try:
+            import qrcode
+            qr = qrcode.QRCode(box_size=3, border=2)
+            qr.add_data(pairing_url)
+            qr.make(fit=True)
+            pil_img = qr.make_image(fill_color="#000000", back_color="#ffffff").convert("RGBA")
+
+            from PIL import ImageTk
+            tk_img = ImageTk.PhotoImage(pil_img)
+            self._current_qr_img = tk_img
+            self.qr_canvas.delete("all")
+            self.qr_canvas.create_image(85, 85, image=tk_img)
+            self.append_log("Rendered Tailscale Remote Android Pairing QR Code in canvas.")
         except Exception as exc:
             self.append_log(f"Could not render QR code: {exc!r}")
 

@@ -1616,6 +1616,79 @@ class LANControlGUI(tk.Tk):
         ttk.Label(status_bar, textvariable=self.status_text, style="Status.TLabel").pack(side="left")
         ttk.Progressbar(status_bar, variable=self.progress, maximum=100, length=280).pack(side="right")
 
+        # ---------------- 1. FIXED BOTTOM STATUS FOOTER (PACKED FIRST) ----------------
+        footer = ttk.Frame(self, padding=(14, 6, 14, 8), style="Footer.TFrame")
+        footer.pack(side="bottom", fill="x")
+
+        elevation_text = "Windows Administrator Active" if is_admin() else "Standard User Mode"
+        elevation_color = COLOR_SUCCESS if is_admin() else COLOR_WARNING
+        ttk.Label(
+            footer,
+            text=f"LANCONTROL Core v{APP_VERSION} • {elevation_text}",
+            font=("Segoe UI", 9, "bold" if is_admin() else "normal"),
+            foreground=elevation_color,
+        ).pack(side="left")
+
+        if not is_admin():
+            ttk.Button(
+                footer,
+                text="⚡ Elevate to Admin",
+                command=lambda: request_admin_elevation("Restart LANCONTROL Fleet Manager with Administrator privileges?"),
+            ).pack(side="left", padx=10)
+
+        ttk.Button(footer, text="↻ Refresh All", command=self.refresh_all).pack(side="right")
+
+        # ---------------- 2. FIXED BOTTOM TERMINAL CONSOLE (LARGE & EXPANDED) ----------------
+        console_box = ttk.LabelFrame(self, text="  ⚡ LIVE SYSTEM TERMINAL & ACTIVITY STREAM  ", style="Section.TLabelframe")
+        console_box.pack(side="bottom", fill="x", padx=12, pady=(0, 6))
+
+        c_top = ttk.Frame(console_box, padding=(10, 4, 10, 3), style="Card.TFrame")
+        c_top.pack(fill="x")
+
+        ttk.Label(
+            c_top,
+            text="● Live Runtime Engine Monitor — Active socket handshakes, peer connections, and fleet events:",
+            font=("Segoe UI", 9, "bold"),
+            foreground="#38bdf8",
+        ).pack(side="left")
+
+        ttk.Button(
+            c_top,
+            text="Clear Console",
+            command=lambda: (self.bottom_console_widget.delete("1.0", "end") if hasattr(self, "bottom_console_widget") else None),
+        ).pack(side="right")
+
+        c_inner = ttk.Frame(console_box, padding=(8, 2, 8, 8), style="Card.TFrame")
+        c_inner.pack(fill="x")
+
+        self.bottom_console_widget = tk.Text(
+            c_inner,
+            height=6,
+            wrap="word",
+            font=("Consolas", 10),
+            bg="#050811",
+            fg="#38bdf8",
+            insertbackground="#38bdf8",
+            padx=10,
+            pady=6,
+            relief="flat",
+        )
+        self.bottom_console_widget.pack(fill="both", expand=True, side="left")
+        c_sb = ttk.Scrollbar(c_inner, orient="vertical", command=self.bottom_console_widget.yview)
+        c_sb.pack(side="right", fill="y")
+        self.bottom_console_widget.configure(yscrollcommand=c_sb.set)
+
+        # Preload initial logs into bottom console
+        try:
+            if LOCAL_LOG_FILE.exists():
+                lines_log = LOCAL_LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
+                tail = lines_log[-45:]
+                self.bottom_console_widget.insert("1.0", "\n".join(tail) + ("\n" if tail else ""))
+                self.bottom_console_widget.see("end")
+        except Exception:
+            pass
+
+        # ---------------- 3. MAIN APPLICATION TABS (FILLS ALL REMAINING SPACE) ----------------
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True, padx=12, pady=(0, 6))
 
@@ -1636,7 +1709,7 @@ class LANControlGUI(tk.Tk):
         self.notebook.add(self.tailscale_tab, text=" 🌐 Remote Access (Tailscale) ")
         self.notebook.add(self.deploy_tab, text=" 🚀 Client & Agent Builder ")
         self.notebook.add(self.remote_guide_tab, text=" 📖 Access Guide ")
-        self.notebook.add(self.logs_tab, text=" 📝 Real-Time Logs ")
+        self.notebook.add(self.logs_tab, text=" 📄 Full Logs ")
         self.notebook.add(self.diagnostics_tab, text=" 🛠️ Diagnostics ")
 
         self._build_dashboard_tab()
@@ -1651,78 +1724,6 @@ class LANControlGUI(tk.Tk):
 
         # Listen to tab switch to auto-refresh tab data
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
-
-        # ---------------- FIXED BOTTOM LIVE CONSOLE ----------------
-        console_box = ttk.LabelFrame(self, text="  ⚡ Live System Terminal & Activity Monitor  ", style="Section.TLabelframe")
-        console_box.pack(fill="x", padx=12, pady=(0, 4))
-
-        c_top = ttk.Frame(console_box, padding=(8, 1, 8, 1), style="Card.TFrame")
-        c_top.pack(fill="x")
-
-        ttk.Label(
-            c_top,
-            text="Streaming active runtime logs, connection handshakes, and agent events in real-time:",
-            font=("Segoe UI", 8),
-            foreground=COLOR_TEXT_SECONDARY,
-        ).pack(side="left")
-
-        ttk.Button(
-            c_top,
-            text="Clear Console",
-            command=lambda: (self.bottom_console_widget.delete("1.0", "end") if hasattr(self, "bottom_console_widget") else None),
-        ).pack(side="right")
-
-        c_inner = ttk.Frame(console_box, padding=(6, 0, 6, 4), style="Card.TFrame")
-        c_inner.pack(fill="x")
-
-        self.bottom_console_widget = tk.Text(
-            c_inner,
-            height=3,
-            wrap="word",
-            font=("Consolas", 9),
-            bg="#060911",
-            fg="#38bdf8",
-            insertbackground="#38bdf8",
-            padx=8,
-            pady=4,
-            relief="flat",
-        )
-        self.bottom_console_widget.pack(fill="both", expand=True, side="left")
-        c_sb = ttk.Scrollbar(c_inner, orient="vertical", command=self.bottom_console_widget.yview)
-        c_sb.pack(side="right", fill="y")
-        self.bottom_console_widget.configure(yscrollcommand=c_sb.set)
-
-        # Preload initial logs into bottom console if available
-        try:
-            if LOCAL_LOG_FILE.exists():
-                lines = LOCAL_LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
-                tail = lines[-35:]
-                self.bottom_console_widget.insert("1.0", "\n".join(tail) + ("\n" if tail else ""))
-                self.bottom_console_widget.see("end")
-        except Exception:
-            pass
-
-        footer = ttk.Frame(self, padding=(14, 6, 14, 10), style="Footer.TFrame")
-        footer.pack(fill="x")
-
-        elevation_text = "Windows Administrator Active" if is_admin() else "Standard User Mode"
-        elevation_color = COLOR_SUCCESS if is_admin() else COLOR_WARNING
-        ttk.Label(
-            footer,
-            text=f"LANCONTROL Core v{APP_VERSION} • {elevation_text}",
-            font=("Segoe UI", 9, "bold" if is_admin() else "normal"),
-            foreground=elevation_color,
-        ).pack(side="left")
-
-        if not is_admin():
-            ttk.Button(
-                footer,
-                text="⚡ Elevate to Admin",
-                command=lambda: request_admin_elevation("Restart LANCONTROL Fleet Manager with Administrator privileges?"),
-            ).pack(side="left", padx=10)
-
-        ttk.Button(footer, text="🔄 Refresh All", command=self.refresh_all).pack(side="right")
-
     def _on_tab_changed(self, event):
         tab = self.notebook.select()
         if tab == str(self.config_tab):

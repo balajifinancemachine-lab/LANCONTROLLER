@@ -64,6 +64,17 @@ if hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
+# Configure high-DPI awareness on Windows to prevent blurry text or clipped sizing
+if sys.platform == "win32":
+    try:
+        import ctypes
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor DPI aware v2
+        except Exception:
+            ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
 # GUI & Imaging
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -1414,8 +1425,20 @@ class LANControlGUI(tk.Tk):
         self.tray = tray_instance
 
         self.title(APP_TITLE)
-        self.geometry("1420x820")
-        self.minsize(1100, 650)
+        
+        # Dynamically determine responsive window geometry based on current display size
+        try:
+            sw = self.winfo_screenwidth()
+            sh = self.winfo_screenheight()
+            target_w = min(1440, max(1120, sw - 80))
+            target_h = min(880, max(720, sh - 90))
+            pos_x = max(0, (sw - target_w) // 2)
+            pos_y = max(0, (sh - target_h) // 2)
+            self.geometry(f"{target_w}x{target_h}+{pos_x}+{pos_y}")
+        except Exception:
+            self.geometry("1360x780")
+            
+        self.minsize(1050, 620)
 
         # Thread-safe UI queue for Python 3.14
         self._ui_queue: queue.Queue = queue.Queue()
@@ -1561,39 +1584,41 @@ class LANControlGUI(tk.Tk):
         style.configure("Footer.TFrame", background=COLOR_BG_NAV)
         style.configure("Card.TFrame", background=COLOR_BG_CARD)
 
-        # Labels
-        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"), foreground="#38bdf8", background=COLOR_BG_NAV)
-        style.configure("Subtitle.TLabel", font=("Segoe UI", 9), foreground=COLOR_TEXT_SECONDARY, background=COLOR_BG_NAV)
+        # Modern Typography & Labels
+        style.configure("Title.TLabel", font=("Segoe UI", 16, "bold"), foreground="#38bdf8", background=COLOR_BG_NAV)
+        style.configure("Subtitle.TLabel", font=("Segoe UI", 8), foreground=COLOR_TEXT_SECONDARY, background=COLOR_BG_NAV)
         style.configure("Section.TLabelframe", background=COLOR_BG_CARD, bordercolor=COLOR_BG_CARD_BORDER)
-        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 10, "bold"), foreground="#38bdf8", background=COLOR_BG_CARD)
-        style.configure("TLabel", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY)
+        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 9, "bold"), foreground="#38bdf8", background=COLOR_BG_CARD)
+        style.configure("TLabel", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9))
         style.configure("Status.TLabel", font=("Segoe UI", 9, "bold"), background=COLOR_BG_MAIN, foreground="#38bdf8")
 
-        # Modern Buttons
-        style.configure("TButton", font=("Segoe UI", 9, "bold"), background="#1e293b", foreground="#f8fafc", padding=(10, 6), borderwidth=1, relief="flat")
+        # Responsive Compact Buttons (No text cut-off, clean modern corners)
+        style.configure("TButton", font=("Segoe UI", 8, "bold"), background="#1e293b", foreground="#f8fafc", padding=(6, 4), borderwidth=1, relief="flat")
         style.map("TButton", background=[("active", "#334155"), ("pressed", "#0f172a")])
 
-        style.configure("Primary.TButton", font=("Segoe UI", 10, "bold"), background="#2563eb", foreground="#ffffff", padding=(14, 8), borderwidth=0)
+        style.configure("Primary.TButton", font=("Segoe UI", 9, "bold"), background="#2563eb", foreground="#ffffff", padding=(8, 5), borderwidth=0)
         style.map("Primary.TButton", background=[("active", "#1d4ed8"), ("pressed", "#1e40af")])
 
-        style.configure("Action.TButton", font=("Segoe UI", 9, "bold"), background="#0d9488", foreground="#ffffff", padding=(10, 6), borderwidth=0)
+        style.configure("Action.TButton", font=("Segoe UI", 8, "bold"), background="#0d9488", foreground="#ffffff", padding=(6, 4), borderwidth=0)
         style.map("Action.TButton", background=[("active", "#0f766e"), ("pressed", "#115e59")])
 
-        style.configure("Danger.TButton", font=("Segoe UI", 9, "bold"), background="#b91c1c", foreground="#ffffff", padding=(10, 6), borderwidth=0)
+        style.configure("Danger.TButton", font=("Segoe UI", 8, "bold"), background="#b91c1c", foreground="#ffffff", padding=(6, 4), borderwidth=0)
         style.map("Danger.TButton", background=[("active", "#991b1b"), ("pressed", "#7f1d1d")])
 
-        # Modern Notebook Tabs
-        # Sleek Modern Sidebar Tabs
+        # Modern Compact Responsive Notebook Tabs
         style.configure("TNotebook", background=COLOR_BG_MAIN, borderwidth=0)
-        style.configure("TNotebook.Tab", background="#161f30", foreground="#94a3b8", font=("Segoe UI", 10, "bold"), padding=(16, 12), borderwidth=0)
+        style.configure("TNotebook.Tab", background="#161f30", foreground="#94a3b8", font=("Segoe UI", 9, "bold"), padding=(10, 6), borderwidth=0)
         style.map("TNotebook.Tab",
                   background=[("selected", "#2563eb"), ("active", "#1e293b")],
                   foreground=[("selected", "#ffffff"), ("active", "#38bdf8")])
 
-        # Checkbuttons & Radios
-        style.configure("TCheckbutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9))
+        # Modern Inputs & Checkbuttons
+        style.configure("TEntry", fieldbackground="#0b0f19", foreground="#f8fafc", insertcolor="#38bdf8", padding=3)
+        style.configure("TSpinbox", fieldbackground="#0b0f19", foreground="#f8fafc", insertcolor="#38bdf8", padding=2)
+        style.configure("TCombobox", fieldbackground="#0b0f19", foreground="#f8fafc", padding=2)
+        style.configure("TCheckbutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8))
         style.map("TCheckbutton", background=[("active", COLOR_BG_CARD)])
-        style.configure("TRadiobutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9))
+        style.configure("TRadiobutton", background=COLOR_BG_CARD, foreground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8))
         style.map("TRadiobutton", background=[("active", COLOR_BG_CARD)])
 
     def _build_ui(self):
@@ -1661,19 +1686,19 @@ class LANControlGUI(tk.Tk):
             command=lambda: (self.bottom_console_widget.delete("1.0", "end") if hasattr(self, "bottom_console_widget") else None),
         ).pack(side="right")
 
-        c_inner = ttk.Frame(console_box, padding=(8, 2, 8, 8), style="Card.TFrame")
+        c_inner = ttk.Frame(console_box, padding=(6, 2, 6, 6), style="Card.TFrame")
         c_inner.pack(fill="x")
 
         self.bottom_console_widget = tk.Text(
             c_inner,
-            height=6,
+            height=4,
             wrap="word",
-            font=("Consolas", 10),
+            font=("Consolas", 9),
             bg="#050811",
             fg="#38bdf8",
             insertbackground="#38bdf8",
-            padx=10,
-            pady=6,
+            padx=8,
+            pady=4,
             relief="flat",
         )
         self.bottom_console_widget.pack(fill="both", expand=True, side="left")
@@ -1696,20 +1721,20 @@ class LANControlGUI(tk.Tk):
         self.notebook.pack(fill="both", expand=True, padx=12, pady=(0, 6))
 
         # 6 Core Logical Hubs
-        self.dashboard_tab = ttk.Frame(self.notebook, padding=14)
-        self.deploy_tab = ttk.Frame(self.notebook, padding=14)
-        self.tailscale_tab = ttk.Frame(self.notebook, padding=14)
-        self.network_tab = ttk.Frame(self.notebook, padding=14)
-        self.server_tab = ttk.Frame(self.notebook, padding=14)
-        self.diagnostics_tab = ttk.Frame(self.notebook, padding=14)
+        self.dashboard_tab = ttk.Frame(self.notebook, padding=(12, 10))
+        self.deploy_tab = ttk.Frame(self.notebook, padding=(12, 10))
+        self.tailscale_tab = ttk.Frame(self.notebook, padding=(12, 10))
+        self.network_tab = ttk.Frame(self.notebook, padding=(12, 10))
+        self.server_tab = ttk.Frame(self.notebook, padding=(12, 10))
+        self.diagnostics_tab = ttk.Frame(self.notebook, padding=(12, 10))
 
-        # Tab headers with clear iconography & spacious padding
-        self.notebook.add(self.dashboard_tab, text="   ⚡ OVERVIEW & STATUS   ")
-        self.notebook.add(self.deploy_tab, text="   🚀 ENDPOINT & MDM BUILDER   ")
-        self.notebook.add(self.tailscale_tab, text="   🌐 REMOTE ANYWHERE & TAILSCALE   ")
-        self.notebook.add(self.network_tab, text="   🔍 LOCAL FLEET SCANNER   ")
-        self.notebook.add(self.server_tab, text="   ⚙️ SERVER & CONFIG SETTINGS   ")
-        self.notebook.add(self.diagnostics_tab, text="   🛠️ AUDIT & SYSTEM REPAIR   ")
+        # Clean, modern responsive tab headers with iconography
+        self.notebook.add(self.dashboard_tab, text=" ⚡ OVERVIEW & STATUS ")
+        self.notebook.add(self.deploy_tab, text=" 🚀 ENDPOINT & MDM BUILDER ")
+        self.notebook.add(self.tailscale_tab, text=" 🌐 REMOTE & TAILSCALE ")
+        self.notebook.add(self.network_tab, text=" 🔍 FLEET SCANNER ")
+        self.notebook.add(self.server_tab, text=" ⚙️ SERVER & CONFIG ")
+        self.notebook.add(self.diagnostics_tab, text=" 🛠️ AUDIT & SYSTEM REPAIR ")
 
         self._build_dashboard_tab()
         self._build_deploy_tab()
@@ -1812,112 +1837,110 @@ class LANControlGUI(tk.Tk):
     def _build_server_tab(self):
         parent = self.server_tab
 
-        # Split pane: Left = Server & Startup Form, Right = Live JSON Editor
-        split = ttk.Frame(parent)
-        split.pack(fill="both", expand=True)
-        split.columnconfigure(0, weight=1)
-        split.columnconfigure(1, weight=1)
+        # Dynamic Responsive PanedWindow (User can drag or window can auto-distribute)
+        paned = ttk.PanedWindow(parent, orient="horizontal")
+        paned.pack(fill="both", expand=True)
 
-        # LEFT COLUMN: Server Settings & Service Management
-        left_col = ttk.Frame(split)
-        left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        # LEFT PANE: Server Settings & Windows Service Controls
+        left_pane = ttk.Frame(paned, padding=(0, 0, 6, 0))
+        paned.add(left_pane, weight=1)
 
-        cfg = ttk.LabelFrame(left_col, text="  Server Engine & Network Identity  ", style="Section.TLabelframe")
-        cfg.pack(fill="x", pady=(0, 8))
-        g = ttk.Frame(cfg, padding=10)
+        cfg = ttk.LabelFrame(left_pane, text="  Server Engine & Network Identity  ", style="Section.TLabelframe")
+        cfg.pack(fill="x", pady=(0, 6))
+        g = ttk.Frame(cfg, padding=(8, 6, 8, 6))
         g.pack(fill="x")
         g.columnconfigure(1, weight=1)
 
-        ttk.Label(g, text="Server Folder:").grid(row=0, column=0, sticky="w", pady=3)
-        ttk.Entry(g, textvariable=self.server_dir).grid(row=0, column=1, sticky="ew", padx=6, pady=3)
-        ttk.Button(g, text="Browse...", command=self.browse_server_dir).grid(row=0, column=2, pady=3)
+        ttk.Label(g, text="Server Folder:").grid(row=0, column=0, sticky="w", pady=2)
+        ttk.Entry(g, textvariable=self.server_dir).grid(row=0, column=1, sticky="ew", padx=4, pady=2)
+        ttk.Button(g, text="Browse...", command=self.browse_server_dir).grid(row=0, column=2, pady=2)
 
-        ttk.Label(g, text="HTTPS Port:").grid(row=1, column=0, sticky="w", pady=3)
-        ttk.Spinbox(g, from_=1, to=65535, textvariable=self.port, width=10).grid(row=1, column=1, sticky="w", padx=6, pady=3)
+        ttk.Label(g, text="HTTPS Port:").grid(row=1, column=0, sticky="w", pady=2)
+        ttk.Spinbox(g, from_=1, to=65535, textvariable=self.port, width=8).grid(row=1, column=1, sticky="w", padx=4, pady=2)
 
-        ttk.Label(g, text="Portal Title:").grid(row=2, column=0, sticky="w", pady=3)
-        ttk.Entry(g, textvariable=self.website_title).grid(row=2, column=1, sticky="ew", padx=6, pady=3)
+        ttk.Label(g, text="Portal Title:").grid(row=2, column=0, sticky="w", pady=2)
+        ttk.Entry(g, textvariable=self.website_title).grid(row=2, column=1, columnspan=2, sticky="ew", padx=4, pady=2)
 
-        ttk.Label(g, text="Subtitle:").grid(row=3, column=0, sticky="w", pady=3)
-        ttk.Entry(g, textvariable=self.website_subtitle).grid(row=3, column=1, sticky="ew", padx=6, pady=3)
+        ttk.Label(g, text="Subtitle:").grid(row=3, column=0, sticky="w", pady=2)
+        ttk.Entry(g, textvariable=self.website_subtitle).grid(row=3, column=1, columnspan=2, sticky="ew", padx=4, pady=2)
 
-        ttk.Label(g, text="Cert / DNS:").grid(row=4, column=0, sticky="w", pady=3)
-        ttk.Entry(g, textvariable=self.cert_name).grid(row=4, column=1, sticky="ew", padx=6, pady=3)
+        ttk.Label(g, text="Cert / DNS:").grid(row=4, column=0, sticky="w", pady=2)
+        ttk.Entry(g, textvariable=self.cert_name).grid(row=4, column=1, columnspan=2, sticky="ew", padx=4, pady=2)
 
-        ttk.Checkbutton(g, text="LAN-only mode (Recommended for private fleet)", variable=self.lan_only).grid(row=5, column=1, sticky="w", padx=6, pady=3)
-        ttk.Checkbutton(g, text="Allow account registration on first run", variable=self.allow_new_accounts).grid(row=6, column=1, sticky="w", padx=6, pady=3)
+        ttk.Checkbutton(g, text="LAN-only mode (Private mesh)", variable=self.lan_only).grid(row=5, column=1, columnspan=2, sticky="w", padx=4, pady=2)
+        ttk.Checkbutton(g, text="Allow account registration on first run", variable=self.allow_new_accounts).grid(row=6, column=1, columnspan=2, sticky="w", padx=4, pady=2)
 
-        cfg_actions = ttk.Frame(cfg, padding=(10, 2, 10, 8))
+        cfg_actions = ttk.Frame(cfg, padding=(8, 2, 8, 6))
         cfg_actions.pack(fill="x")
-        ttk.Button(cfg_actions, text="Save & Write Config", style="Action.TButton", command=self.write_config).pack(side="left")
-        ttk.Button(cfg_actions, text="Backup Config", command=self.backup_current_config).pack(side="left", padx=6)
-        ttk.Button(cfg_actions, text="Update via npm", command=self.install_or_update_mesh).pack(side="right")
+        ttk.Button(cfg_actions, text="Save Config", style="Action.TButton", command=self.write_config).pack(side="left")
+        ttk.Button(cfg_actions, text="Backup", command=self.backup_current_config).pack(side="left", padx=4)
+        ttk.Button(cfg_actions, text="npm Update", command=self.install_or_update_mesh).pack(side="right")
 
-        startup_box = ttk.LabelFrame(left_col, text="  Windows Startup & Background Tray  ", style="Section.TLabelframe")
+        startup_box = ttk.LabelFrame(left_pane, text="  Windows Startup & Background Tray  ", style="Section.TLabelframe")
         startup_box.pack(fill="x", pady=4)
-        sb = ttk.Frame(startup_box, padding=8)
+        sb = ttk.Frame(startup_box, padding=(8, 4, 8, 4))
         sb.pack(fill="x")
 
         ttk.Checkbutton(
-            sb, text="Auto-start LANCONTROL Service on Windows Boot (System: start= auto)",
+            sb, text="Auto-start Service on Boot (Service: start= auto)",
             variable=self.boot_autostart, command=self.on_toggle_boot_autostart,
-        ).pack(anchor="w", pady=2)
+        ).pack(anchor="w", pady=1)
 
         ttk.Checkbutton(
-            sb, text="Auto-start Fleet Manager on Windows User Login (Registry: HKCU Run)",
+            sb, text="Auto-start Manager on Login (Registry: HKCU Run)",
             variable=self.login_autostart, command=self.on_toggle_login_autostart,
-        ).pack(anchor="w", pady=2)
+        ).pack(anchor="w", pady=1)
 
         ttk.Checkbutton(
-            sb, text="Auto-open Web UI in browser upon startup",
+            sb, text="Auto-open Web UI in browser on launch",
             variable=self.auto_open_web_ui, command=self._save_state,
-        ).pack(anchor="w", pady=2)
+        ).pack(anchor="w", pady=1)
 
         ttk.Checkbutton(
-            sb, text="Keep running in background (Minimize to tray on close)",
+            sb, text="Keep running in tray (Minimize to tray on [X])",
             variable=self.minimize_to_tray_on_close, command=self._save_state,
-        ).pack(anchor="w", pady=2)
+        ).pack(anchor="w", pady=1)
 
-        sf_box = ttk.LabelFrame(left_col, text="  Windows Service & Firewall Controls  ", style="Section.TLabelframe")
+        sf_box = ttk.LabelFrame(left_pane, text="  Windows Service & Firewall  ", style="Section.TLabelframe")
         sf_box.pack(fill="x", pady=4)
-        sf = ttk.Frame(sf_box, padding=8)
+        sf = ttk.Frame(sf_box, padding=(8, 4, 8, 4))
         sf.pack(fill="x")
 
-        ttk.Button(sf, text="Install Service", command=self.install_service).pack(side="left", padx=3)
-        ttk.Button(sf, text="Remove Service", command=self.remove_service).pack(side="left", padx=3)
-        ttk.Button(sf, text="Allow Firewall", command=self.allow_firewall).pack(side="left", padx=6)
+        ttk.Button(sf, text="Install Service", command=self.install_service).pack(side="left", padx=2)
+        ttk.Button(sf, text="Remove", command=self.remove_service).pack(side="left", padx=2)
+        ttk.Button(sf, text="Firewall", command=self.allow_firewall).pack(side="left", padx=2)
         ttk.Button(sf, text="Test HTTPS", command=self.test_local_https).pack(side="right")
 
-        # RIGHT COLUMN: Integrated Live JSON Editor
-        right_col = ttk.LabelFrame(split, text="  Live config.json Active Editor & Backup  ", style="Section.TLabelframe")
-        right_col.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        # RIGHT PANE: Integrated Live JSON Editor
+        right_pane = ttk.LabelFrame(paned, text="  Live config.json Active Editor & Backup  ", style="Section.TLabelframe")
+        paned.add(right_pane, weight=2)
 
-        top_r = ttk.Frame(right_col, padding=(8, 4, 8, 4))
+        top_r = ttk.Frame(right_pane, padding=(8, 3, 8, 3))
         top_r.pack(fill="x")
 
-        self.config_path_label = ttk.Label(top_r, text="Locating active config...", font=("Segoe UI", 9), foreground=COLOR_TEXT_SECONDARY)
-        self.config_path_label.pack(side="left")
+        self.config_path_label = ttk.Label(top_r, text="Locating active config...", font=("Segoe UI", 8), foreground=COLOR_TEXT_SECONDARY)
+        self.config_path_label.pack(side="left", fill="x", expand=True)
 
         r_btns = ttk.Frame(top_r)
         r_btns.pack(side="right")
         ttk.Button(r_btns, text="↻ Reload", command=self.reload_config_tab).pack(side="left", padx=2)
         ttk.Button(r_btns, text="💾 Save", style="Action.TButton", command=self.save_config_from_editor).pack(side="left", padx=2)
         ttk.Button(r_btns, text="Notepad", command=self.open_config_in_notepad).pack(side="left", padx=2)
-        ttk.Button(r_btns, text="Open Folder", command=self.open_config_folder).pack(side="left", padx=2)
+        ttk.Button(r_btns, text="Folder", command=self.open_config_folder).pack(side="left", padx=2)
 
         self.config_text_widget = tk.Text(
-            right_col,
+            right_pane,
             wrap="none",
-            font=("Consolas", 10),
+            font=("Consolas", 9),
             bg="#050811",
             fg="#38bdf8",
             insertbackground="#38bdf8",
-            padx=10,
-            pady=8,
+            padx=8,
+            pady=6,
             relief="flat",
         )
-        self.config_text_widget.pack(fill="both", expand=True, padx=8, pady=(0, 6), side="left")
-        cfg_sb_y = ttk.Scrollbar(right_col, orient="vertical", command=self.config_text_widget.yview)
+        self.config_text_widget.pack(fill="both", expand=True, padx=6, pady=(0, 6), side="left")
+        cfg_sb_y = ttk.Scrollbar(right_pane, orient="vertical", command=self.config_text_widget.yview)
         cfg_sb_y.pack(side="right", fill="y", pady=(0, 6))
         self.config_text_widget.configure(yscrollcommand=cfg_sb_y.set)
         self.reload_config_tab()
@@ -2014,18 +2037,18 @@ class LANControlGUI(tk.Tk):
         ttk.Label(status_frame, textvariable=self.tailscale_url_var, wraplength=950).pack(anchor="w", padx=10, pady=(2, 8))
 
         actions = ttk.LabelFrame(parent, text="Setup Actions", style="Section.TLabelframe")
-        actions.pack(fill="x", pady=(0, 10))
-        row1 = ttk.Frame(actions, padding=10)
+        actions.pack(fill="x", pady=(0, 6))
+        row1 = ttk.Frame(actions, padding=(8, 4, 8, 4))
         row1.pack(fill="x")
-        ttk.Button(row1, text="1. Install Tailscale Automatically", style="Primary.TButton", command=self.install_tailscale_action).pack(side="left", padx=(0, 8))
-        ttk.Button(row1, text="2. Connect / Sign In", command=self.connect_tailscale_action).pack(side="left", padx=8)
-        ttk.Button(row1, text="Refresh Status", command=self.refresh_tailscale_status).pack(side="left", padx=8)
-        row2 = ttk.Frame(actions, padding=(10, 0, 10, 10))
+        ttk.Button(row1, text="1. Install Tailscale Automatically", style="Primary.TButton", command=self.install_tailscale_action).pack(side="left", padx=(0, 6))
+        ttk.Button(row1, text="2. Connect / Sign In", command=self.connect_tailscale_action).pack(side="left", padx=4)
+        ttk.Button(row1, text="Refresh Status", command=self.refresh_tailscale_status).pack(side="left", padx=4)
+        row2 = ttk.Frame(actions, padding=(8, 0, 8, 6))
         row2.pack(fill="x")
-        ttk.Button(row2, text="3. Configure Private Remote URL", style="Primary.TButton", command=self.configure_tailscale_action).pack(side="left", padx=(0, 8))
-        ttk.Button(row2, text="Open Remote URL", command=self.open_tailscale_url).pack(side="left", padx=8)
-        ttk.Button(row2, text="Copy Remote URL", command=self.copy_tailscale_url).pack(side="left", padx=8)
-        ttk.Button(row2, text="Disable Serve…", command=self.disable_tailscale_action).pack(side="left", padx=8)
+        ttk.Button(row2, text="3. Configure Private Remote URL", style="Primary.TButton", command=self.configure_tailscale_action).pack(side="left", padx=(0, 6))
+        ttk.Button(row2, text="Open URL", command=self.open_tailscale_url).pack(side="left", padx=4)
+        ttk.Button(row2, text="Copy URL", command=self.copy_tailscale_url).pack(side="left", padx=4)
+        ttk.Button(row2, text="Disable Serve", command=self.disable_tailscale_action).pack(side="left", padx=4)
 
         guide = ttk.LabelFrame(parent, text="One-time setup checklist", style="Section.TLabelframe")
         guide.pack(fill="both", expand=True)
@@ -2264,70 +2287,68 @@ class LANControlGUI(tk.Tk):
         self.deploy_tag_var = tk.StringVar(value="")
         ttk.Entry(row2, textvariable=self.deploy_tag_var, width=16).pack(side="left")
 
-        split_pane = ttk.Frame(parent)
+        split_pane = ttk.PanedWindow(parent, orient="horizontal")
         split_pane.pack(fill="both", expand=True)
-        split_pane.columnconfigure(0, weight=1)
-        split_pane.columnconfigure(1, weight=1)
 
-        # LEFT CARD: Windows Executable Generation
-        win_card = ttk.LabelFrame(split_pane, text="Windows Standalone Client & Service Generation", style="Section.TLabelframe")
-        win_card.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
+        # LEFT PANE: Windows Executable Generation
+        win_card = ttk.LabelFrame(split_pane, text="  Windows Standalone Client & Service Generation  ", style="Section.TLabelframe")
+        split_pane.add(win_card, weight=1)
 
-        win_inner = ttk.Frame(win_card, padding=10)
+        win_inner = ttk.Frame(win_card, padding=(8, 6, 8, 6))
         win_inner.pack(fill="both", expand=True)
 
         ttk.Label(
             win_inner,
-            text="1. Normal User Client (User-Mode):\n   • Zero installation required; no admin password needed.\n   • Perfect for remote support, desktop access & file transfers.\n   • Injects pre-configured LANCONTROL connection policy directly into PE header.",
-            font=("Segoe UI", 9),
+            text="1. Normal User Client (User-Mode):\n   • Zero installation required; no admin password needed.\n   • Remote desktop access & file transfers directly via pre-configured PE header.",
+            font=("Segoe UI", 8),
             foreground=COLOR_TEXT_SECONDARY,
             justify="left",
-        ).pack(anchor="w", pady=(0, 6))
+        ).pack(anchor="w", pady=(0, 4))
 
         ttk.Button(
             win_inner,
             text="⬇ Generate Normal User Client (LANCONTROL_Client.exe)",
             style="Primary.TButton",
             command=self.generate_user_client_exe,
-        ).pack(fill="x", pady=(0, 12))
+        ).pack(fill="x", pady=(0, 8))
 
         ttk.Label(
             win_inner,
-            text="2. Administrator Background Service (Full MDM):\n   • Installs silent persistent background Windows Service.\n   • Starts automatically on boot with full SYSTEM rights.\n   • Remote CMD/PowerShell, Task Manager, Sleep/Wake, and lock control.",
-            font=("Segoe UI", 9),
+            text="2. Administrator Background Service (Full MDM):\n   • Installs silent persistent background Windows Service with SYSTEM rights.\n   • Remote CMD/PowerShell, Task Manager, Sleep/Wake, and lock control.",
+            font=("Segoe UI", 8),
             foreground=COLOR_TEXT_SECONDARY,
             justify="left",
-        ).pack(anchor="w", pady=(0, 6))
+        ).pack(anchor="w", pady=(0, 4))
 
         ttk.Button(
             win_inner,
             text="⬇ Generate Administrator Service Agent (LANCONTROL_Service_x64.exe)",
             style="Action.TButton",
             command=self.generate_service_agent_exe,
-        ).pack(fill="x", pady=(0, 10))
+        ).pack(fill="x", pady=(0, 8))
 
-        ttk.Label(win_inner, text="Cross-Platform Quick Commands:", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(6, 2))
-        self.cmd_box = tk.Text(win_inner, height=3, font=("Consolas", 8), bg="#0f172a", fg="#38bdf8")
-        self.cmd_box.pack(fill="x", pady=(0, 4))
+        ttk.Label(win_inner, text="Cross-Platform Quick Commands:", font=("Segoe UI", 8, "bold")).pack(anchor="w", pady=(4, 1))
+        self.cmd_box = tk.Text(win_inner, height=2, font=("Consolas", 8), bg="#050811", fg="#38bdf8", relief="flat")
+        self.cmd_box.pack(fill="x", pady=(0, 2))
         self.cmd_box.insert("1.0", "Linux: wget -q -O - https://127.0.0.1:443/meshagents?script=1 | sudo sh\nmacOS: curl -k https://127.0.0.1:443/meshagents?id=10005 -o agent && chmod +x agent")
         self.cmd_box.configure(state="disabled")
 
-        # RIGHT CARD: Android MDM Device Control & Pairing
-        droid_card = ttk.LabelFrame(split_pane, text="Android MDM Device Control & Pairing", style="Section.TLabelframe")
-        droid_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=0)
+        # RIGHT PANE: Android MDM Device Control & Pairing
+        droid_card = ttk.LabelFrame(split_pane, text="  Android MDM Device Control & Pairing  ", style="Section.TLabelframe")
+        split_pane.add(droid_card, weight=1)
 
-        droid_inner = ttk.Frame(droid_card, padding=10)
+        droid_inner = ttk.Frame(droid_card, padding=(8, 6, 8, 6))
         droid_inner.pack(fill="both", expand=True)
 
         droid_action_row = ttk.Frame(droid_inner)
-        droid_action_row.pack(fill="x", pady=(0, 6))
+        droid_action_row.pack(fill="x", pady=(0, 4))
 
         ttk.Button(
             droid_action_row,
             text="⬇ Download Android APK",
             style="Action.TButton",
             command=self.download_android_apk,
-        ).pack(side="left", padx=(0, 6))
+        ).pack(side="left", padx=(0, 4))
 
         ttk.Button(
             droid_action_row,
@@ -2336,8 +2357,8 @@ class LANControlGUI(tk.Tk):
             command=self.display_android_qr_code,
         ).pack(side="left")
 
-        self.qr_canvas = tk.Canvas(droid_inner, width=170, height=170, bg="#0f172a", highlightthickness=1, highlightbackground="#25334d")
-        self.qr_canvas.pack(pady=4)
+        self.qr_canvas = tk.Canvas(droid_inner, width=150, height=150, bg="#050811", highlightthickness=1, highlightbackground="#25334d")
+        self.qr_canvas.pack(pady=2)
 
         self.android_url_text = tk.StringVar(value="mc://... (Click 'Generate Pairing QR Code')")
         url_entry = ttk.Entry(droid_inner, textvariable=self.android_url_text, font=("Consolas", 8), state="readonly")
@@ -2345,12 +2366,12 @@ class LANControlGUI(tk.Tk):
 
         ttk.Label(
             droid_inner,
-            text="Instructions: Install the LANCONTROL APK on your Android device, open the app, tap 'Scan QR Code' to pair immediately with full MDM rights.",
+            text="Instructions: Install the LANCONTROL APK on your Android device, open app, tap 'Scan QR Code' to pair immediately.",
             font=("Segoe UI", 8),
             foreground=COLOR_TEXT_SECONDARY,
             wraplength=350,
             justify="center",
-        ).pack(pady=(4, 0))
+        ).pack(pady=(2, 0))
 
 
 
@@ -2369,20 +2390,18 @@ class LANControlGUI(tk.Tk):
             style="Subtitle.TLabel",
         ).pack(anchor="w", pady=(2, 6))
 
-        # Split pane: Left = Deep Audit & Repair, Right = Full System Log Viewer
-        split_diag = ttk.Frame(parent)
+        # Dynamic Responsive PanedWindow for Diagnostics & Logs
+        split_diag = ttk.PanedWindow(parent, orient="horizontal")
         split_diag.pack(fill="both", expand=True)
-        split_diag.columnconfigure(0, weight=1)
-        split_diag.columnconfigure(1, weight=1)
 
-        # LEFT COLUMN: Diagnostics & Automated Repair
+        # LEFT PANE: Diagnostics & Automated Repair
         left_box = ttk.LabelFrame(split_diag, text="  Automated Self-Audit & Self-Healing Engine  ", style="Section.TLabelframe")
-        left_box.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        split_diag.add(left_box, weight=1)
 
-        l_bar = ttk.Frame(left_box, padding=(10, 6, 10, 6))
+        l_bar = ttk.Frame(left_box, padding=(8, 4, 8, 4))
         l_bar.pack(fill="x")
         ttk.Button(l_bar, text="⚡ RUN DEEP AUDIT & REPAIR", style="Primary.TButton", command=self.diagnose_and_repair).pack(side="left")
-        ttk.Button(l_bar, text="🧹 Clear Audit", command=lambda: self.diag_widget.delete("1.0", "end")).pack(side="right")
+        ttk.Button(l_bar, text="Clear", command=lambda: self.diag_widget.delete("1.0", "end")).pack(side="right")
 
         self.diag_widget = tk.Text(
             left_box,
@@ -2391,26 +2410,26 @@ class LANControlGUI(tk.Tk):
             bg="#050811",
             fg="#38bdf8",
             insertbackground="#38bdf8",
-            padx=10,
-            pady=8,
+            padx=8,
+            pady=6,
             relief="flat",
         )
-        self.diag_widget.pack(fill="both", expand=True, padx=8, pady=(0, 8), side="left")
+        self.diag_widget.pack(fill="both", expand=True, padx=6, pady=(0, 6), side="left")
         d_sb = ttk.Scrollbar(left_box, orient="vertical", command=self.diag_widget.yview)
-        d_sb.pack(side="right", fill="y", pady=(0, 8))
+        d_sb.pack(side="right", fill="y", pady=(0, 6))
         self.diag_widget.configure(yscrollcommand=d_sb.set)
         self.diag_widget.insert("1.0", "Click 'RUN DEEP AUDIT & REPAIR' to perform complete environment validation and automatic remediation.\n")
 
-        # RIGHT COLUMN: System & Setup Event Logs
+        # RIGHT PANE: System & Setup Event Logs
         right_box = ttk.LabelFrame(split_diag, text="  Full Event Logs (setup.log & runtime)  ", style="Section.TLabelframe")
-        right_box.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
+        split_diag.add(right_box, weight=1)
 
-        r_bar = ttk.Frame(right_box, padding=(10, 6, 10, 6))
+        r_bar = ttk.Frame(right_box, padding=(8, 4, 8, 4))
         r_bar.pack(fill="x")
         ttk.Button(r_bar, text="↻ Refresh Log", command=self.refresh_log).pack(side="left")
-        ttk.Button(r_bar, text="📝 Open Local Log", command=self.open_local_log).pack(side="left", padx=4)
-        ttk.Button(r_bar, text="📁 Open App Folder", command=self.open_app_folder).pack(side="left", padx=4)
-        ttk.Button(r_bar, text="🧹 Clear", command=self.clear_log).pack(side="right")
+        ttk.Button(r_bar, text="📝 Open Log", command=self.open_local_log).pack(side="left", padx=3)
+        ttk.Button(r_bar, text="📁 App Folder", command=self.open_app_folder).pack(side="left", padx=3)
+        ttk.Button(r_bar, text="Clear", command=self.clear_log).pack(side="right")
 
         self.log_path_label = ttk.Label(
             right_box,
@@ -2418,7 +2437,7 @@ class LANControlGUI(tk.Tk):
             font=("Segoe UI", 8),
             foreground=COLOR_TEXT_SECONDARY,
         )
-        self.log_path_label.pack(anchor="w", padx=10, pady=(0, 4))
+        self.log_path_label.pack(anchor="w", padx=8, pady=(0, 2))
 
         self.log_widget = tk.Text(
             right_box,

@@ -9,7 +9,6 @@ LANController.pyw, ensuring all legacy scripts, tasks, and shortcuts work.
 from __future__ import annotations
 
 import runpy
-import sys
 from pathlib import Path
 
 # Re-export all public API symbols from LANController

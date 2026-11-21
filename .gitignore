@@ -2,12 +2,27 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
 
-# Local setup logs & secrets
+# Local setup logs, runtime data & secrets
 *.log
 meshcentral-data/
+meshcentral-backups/
+config-backups/
 *.key
 *.crt
+*.tmp
+*.bak
 
-# Bundled heavy installer binaries (GitHub 100MB / recommended limit)
+# Nested repositories, node modules & IDE states
+lancontrol-repo/
+meshcentral-repo/
+node_modules/
+.serena/
+.vscode/
+.idea/
+
+# Bundled heavy installer binaries (GitHub 100MB limit)
 bin/tailscale-setup.msi
+bin/*.msi
+bin/*.exe

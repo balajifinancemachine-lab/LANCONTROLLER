@@ -1,8 +1,16 @@
-# LANCONTROL: Complete Multi-Device & Remote Setup Manual
+# LANController: Complete Multi-Device & Remote Setup Manual
 
-Welcome to **LANCONTROL**, the zero-branding autonomous remote management and MDM (Mobile Device Management) platform.
+Welcome to **LANController**, the zero-branding autonomous remote management and MDM (Mobile Device Management) platform.
 
-This guide details how to install and access your office/home network from anywhere, with zero or minimal technical configuration.
+This guide details how to install, manage, and access your office/home network from anywhere, with zero or minimal technical configuration.
+
+---
+
+## ⚡ Standalone Architecture
+`LANController.pyw` is a **100% self-contained, single-file executable**.
+- **Self-Healing Dependencies**: Automatically bootstraps required libraries (`pillow`, `pystray`, `qrcode`, `cryptography`) on startup.
+- **Zero External Dependencies**: Works out-of-the-box on clean Windows 10/11 and Windows Server installations.
+- **Embedded Assets**: Includes embedded high-DPI branding and automatic configuration generation.
 
 ---
 
@@ -11,9 +19,9 @@ This guide details how to install and access your office/home network from anywh
 This is the recommended, most secure way to control your office PCs and Android devices from home:
 
 ### On Your Office PC (Current Computer)
-1. Launch `lancontrol_manager.pyw`.
+1. Launch `LANController.pyw`.
 2. Ensure the server is running (Service status: **Running**).
-3. Tailscale is already installed on this machine:
+3. Tailscale is installed on this machine:
    - Your Office Tailscale IP: `100.113.51.119`
    - Your Office MagicDNS: `dilip.taila95d71.ts.net`
    - Account: `finance.balaji.jmd@gmail.com`
@@ -37,7 +45,7 @@ If you cannot install Tailscale on your Home PC:
 1. **Enable Port Forwarding on Office Router:**
    - Open your office router admin settings (`http://192.168.0.1`).
    - Add a Port Forward rule:
-     - **External Port:** 443 (or any custom port, e.g. 8443)
+     - **External Port:** 443 (or custom port, e.g. 8443)
      - **Internal IP:** `192.168.0.158` (Office PC)
      - **Internal Port:** 443
      - **Protocol:** TCP
@@ -52,40 +60,24 @@ If you cannot install Tailscale on your Home PC:
 
 ## 💻 Scenario 3: Deploying to Other Office/Client PCs
 
-### 1. Normal User Mode (LANCONTROL_Client.exe)
+### 1. Normal User Mode (LANController_Client.exe)
 - **Privileges Required:** Standard User (NO Admin Rights Needed).
 - **Behavior:** Injects pre-configured connection policy into the PE header. Normal users simply double-click and run.
 - **Features:** Remote desktop, interactive terminal, file manager.
 
-### 2. Administrator Service Mode (LANCONTROL_Service_x64.exe)
-- **Privileges Required:** Administrator (One-time setup).
-- **Behavior:** Installs silent persistent Windows Service with boot auto-start.
-- **Features:** Full SYSTEM control, background CMD/PowerShell, Task Manager, Sleep/Reboot, wake-on-LAN.
+### 2. Administrator Service Mode (LANController_Service_x64.exe)
+- **Privileges Required:** Administrator.
+- **Behavior:** Installs as an autonomous background Windows Service. Survives reboots and user logouts.
+- **Features:** Full unattended remote access, pre-boot control, user switching.
 
 ---
 
-## 📱 Scenario 4: Managing Android Phones & Tablets
-
-1. In `lancontrol_manager.pyw`, go to **Endpoint Client & Agent Generator** tab.
-2. Select target host:
-   - If phone has Tailscale: Select **`[Tailscale IP]`**.
-   - If phone is on remote mobile data (without Tailscale): Select **`[Detect Public WAN IP]`**.
-3. Click **`Download Android APK`** and install the APK on the Android device.
-4. Open the LANCONTROL app on Android, tap **Scan QR Code**, and scan the on-screen code.
-5. The Android device will now appear on your web dashboard with full remote screen view and device controls!
-
----
-
-## ⚡ 1-Click Automated Setup for a New Office / New PC
-
-To deploy this entire server setup onto a completely fresh machine:
-1. Copy the `MESHCONTROL` folder to the new PC.
-2. Run `lancontrol_manager.pyw`.
-3. Click **`⚡ 1-CLICK AUTOMATED SETUP (ANY PC / ANY OFFICE)`**.
-4. The system will automatically:
-   - Configure local files & ports
-   - Check Node.js and dependencies
-   - Install & start Windows Service
-   - Enable Boot & Login Autostart
-   - Configure Windows Firewall rules
-   - Launch the management console in your browser.
+## 📱 Scenario 4: Managing Android Mobile Devices (MDM)
+1. Open the **Deploy & Packaging** tab in `LANController.pyw`.
+2. Click **Generate Android Pairing QR Code** (or copy pairing URL).
+3. Install the **MeshCentral Agent** app from Google Play Store or APK on the Android phone.
+4. Scan the QR code or paste the pairing URL.
+5. Grant permissions:
+   - Device Administration & Remote Screen viewing
+   - Background service execution
+6. The phone now appears in your LANController management console!
